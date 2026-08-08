@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-# Push secrets from build env vars into Worker runtime bindings
+# Deploy code first so the latest version is active,
+# then push secrets (each secret put triggers a fast re-deploy with updated bindings).
+npx wrangler deploy
+
 for SECRET in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET SESSION_SECRET ADMIN_EMAILS DRIVE_ACCOUNT_EMAIL YOUTUBE_API_KEY YOUTUBE_CHANNEL_ID; do
   VALUE="${!SECRET}"
   if [ -n "$VALUE" ]; then
@@ -11,5 +14,3 @@ for SECRET in GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET SESSION_SECRET ADMIN_EMAILS 
     echo "⚠ $SECRET is empty, skipping"
   fi
 done
-
-npx wrangler deploy
