@@ -16,6 +16,9 @@ import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } 
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleDriveStatus } from './api/drive/status'
 import { onRequestPost as handleDriveDisconnect } from './api/drive/disconnect'
+import { onRequestGet as handleDriveFolders } from './api/drive/folders'
+import { onRequestGet as handleSiteFolderGet, onRequestPost as handleSiteFolderPost } from './api/site/folder'
+import { getDriveToken } from './api/drive/_token'
 
 interface Env {
   ASSETS: Fetcher
@@ -49,6 +52,117 @@ async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
   return !!data
 }
 
+// ── OG meta injection for social bots ──────────────────────────────────────
+
+function escHtml(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+interface FileMeta {
+  name?: string
+  description?: string
+  thumbnailLink?: string
+  appProperties?: { type?: string; category?: string }
+}
+
+async function getOGMeta(fileId: string, env: Env): Promise<FileMeta | null> {
+  const cacheKey = `og:meta:${fileId}`
+  const cached = await env.SESSIONS.get(cacheKey, { type: 'json' })
+  if (cached) return cached as FileMeta
+
+  let token: string
+  try { token = await getDriveToken(env) } catch { return null }
+
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=name,description,thumbnailLink,appProperties`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!res.ok) return null
+
+  const meta = await res.json() as FileMeta
+  // Cache 2 hours
+  await env.SESSIONS.put(cacheKey, JSON.stringify(meta), { expirationTtl: 7200 })
+  return meta
+}
+
+async function injectOGMeta(
+  htmlRes: Response,
+  fileId: string,
+  env: Env,
+  origin: string,
+  isPoem: boolean,
+): Promise<Response> {
+  const meta = await getOGMeta(fileId, env)
+  if (!meta) return htmlRes
+
+  const title = (meta.name ?? '').replace(/\.md$/, '')
+  const desc = meta.description
+    ?? (isPoem
+      ? `Bài thơ "${title}" của Dương Thanh Biểu.`
+      : `Tác phẩm "${title}" của Dương Thanh Biểu.`)
+  const pageUrl = `${origin}${isPoem ? '/tho/' : '/van-tho/'}${fileId}`
+  const imageUrl = meta.thumbnailLink
+    ? `${origin}/api/drive/thumb?id=${fileId}`
+    : 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
+
+  const ogBlock = `
+  <title>${escHtml(title)} — Dương Thanh Biểu</title>
+  <meta name="description" content="${escHtml(desc)}">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="${escHtml(title)} — Dương Thanh Biểu">
+  <meta property="og:description" content="${escHtml(desc)}">
+  <meta property="og:image" content="${escHtml(imageUrl)}">
+  <meta property="og:url" content="${escHtml(pageUrl)}">
+  <meta property="og:site_name" content="Dương Thanh Biểu">
+  <meta property="og:locale" content="vi_VN">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escHtml(title)} — Dương Thanh Biểu">
+  <meta name="twitter:description" content="${escHtml(desc)}">
+  <meta name="twitter:image" content="${escHtml(imageUrl)}">`.trim()
+
+  let html = await htmlRes.text()
+  html = html.replace(/<\/head>/, `  ${ogBlock}\n  </head>`)
+
+  const headers = new Headers(htmlRes.headers)
+  headers.set('Content-Type', 'text/html; charset=utf-8')
+  headers.delete('Content-Length')
+  return new Response(html, { status: htmlRes.status, headers })
+}
+
+// ── Drive thumbnail proxy ───────────────────────────────────────────────────
+
+async function handleDriveThumb(request: Request, env: Env): Promise<Response> {
+  const fileId = new URL(request.url).searchParams.get('id')
+  if (!fileId) return new Response('Missing id', { status: 400 })
+
+  let token: string
+  try { token = await getDriveToken(env) } catch {
+    return new Response('Drive not connected', { status: 503 })
+  }
+
+  const metaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!metaRes.ok) return new Response('Not found', { status: 404 })
+
+  const { thumbnailLink } = await metaRes.json() as { thumbnailLink?: string }
+  if (!thumbnailLink) return new Response('No thumbnail', { status: 404 })
+
+  // Use a larger thumbnail (replace trailing size param)
+  const largeThumb = thumbnailLink.replace(/=s\d+$/, '=s800')
+
+  const imgRes = await fetch(largeThumb)
+  if (!imgRes.ok) return new Response('Fetch failed', { status: 502 })
+
+  return new Response(imgRes.body, {
+    headers: {
+      'Content-Type': imgRes.headers.get('Content-Type') ?? 'image/jpeg',
+      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+    },
+  })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -56,6 +170,16 @@ export default {
     const method = request.method
 
     if (!path.startsWith('/api/')) {
+      // Inject OG meta for article/poem detail pages
+      const articleMatch = path.match(/^\/van-tho\/([A-Za-z0-9_-]{10,})$/)
+      const poemMatch = path.match(/^\/tho\/([A-Za-z0-9_-]{10,})$/)
+      const fileId = articleMatch?.[1] ?? poemMatch?.[1]
+
+      if (fileId) {
+        const htmlRes = await env.ASSETS.fetch(request)
+        return injectOGMeta(htmlRes, fileId, env, url.origin, !!poemMatch)
+      }
+
       return env.ASSETS.fetch(request)
     }
 
@@ -67,12 +191,13 @@ export default {
     if (path === '/api/auth/me' && method === 'GET') return handleAuthMe(makeCtx(request, env))
     if (path === '/api/auth/logout' && method === 'POST') return handleAuthLogout(makeCtx(request, env))
 
-    // Public Drive reads (no admin param = only published content)
+    // Public Drive reads
     if (path === '/api/drive/list' && method === 'GET' && !url.searchParams.get('admin')) {
       return handleDriveList(makeCtx(request, env))
     }
     if (path === '/api/drive/file' && method === 'GET') return handleDriveFileGet(makeCtx(request, env))
     if (path === '/api/drive/image' && method === 'GET') return handleDriveImage(makeCtx(request, env))
+    if (path === '/api/drive/thumb' && method === 'GET') return handleDriveThumb(request, env)
 
     // Public YouTube
     if (path === '/api/youtube/list' && method === 'GET') return handleYoutubeList(makeCtx(request, env))
@@ -85,6 +210,9 @@ export default {
     if (path === '/api/drive/list' && method === 'GET') return handleDriveList(makeCtx(request, env))
     if (path === '/api/drive/status' && method === 'GET') return handleDriveStatus(makeCtx(request, env))
     if (path === '/api/drive/disconnect' && method === 'POST') return handleDriveDisconnect(makeCtx(request, env))
+    if (path === '/api/drive/folders' && method === 'GET') return handleDriveFolders(makeCtx(request, env))
+    if (path === '/api/site/folder' && method === 'GET') return handleSiteFolderGet(makeCtx(request, env))
+    if (path === '/api/site/folder' && method === 'POST') return handleSiteFolderPost(makeCtx(request, env))
     if (path === '/api/drive/file') {
       if (method === 'POST') return handleDriveFilePost(makeCtx(request, env))
       if (method === 'PATCH') return handleDriveFilePatch(makeCtx(request, env))

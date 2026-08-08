@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useSEO } from '../hooks/useSEO'
 
 interface VideoItem {
   id: string
@@ -18,6 +19,7 @@ interface ApiResponse {
 const PAGE_SIZE = 12
 
 export default function VideoPage() {
+  useSEO({ title: 'Video', description: 'Các video của Dương Thanh Biểu trên YouTube.' })
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')

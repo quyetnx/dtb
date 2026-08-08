@@ -1,5 +1,6 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getDriveToken } from './_token'
+import { getDriveFolder } from './_folder'
 
 interface Env {
   GOOGLE_DRIVE_FOLDER_ID?: string
@@ -10,7 +11,7 @@ interface Env {
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url)
-  const folder = url.searchParams.get('folder') ?? env.GOOGLE_DRIVE_FOLDER_ID ?? ''
+  const folder = url.searchParams.get('folder') ?? await getDriveFolder(env)
   const type = url.searchParams.get('type')
   const isAdmin = url.searchParams.get('admin') === '1'
 
@@ -23,12 +24,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const mimeFilter = type === 'image'
     ? "mimeType contains 'image/'"
-    : "mimeType='text/plain' or mimeType='text/markdown'"
+    : "mimeType='text/plain' or mimeType='text/markdown' or mimeType='application/vnd.google-apps.document'"
 
   const parentFilter = folder ? `'${folder}' in parents and ` : ''
   const driveUrl = new URL('https://www.googleapis.com/drive/v3/files')
   driveUrl.searchParams.set('q', `${parentFilter}trashed=false and (${mimeFilter})`)
-  driveUrl.searchParams.set('fields', 'files(id,name,mimeType,modifiedTime,size,description,appProperties)')
+  driveUrl.searchParams.set('fields', 'files(id,name,mimeType,modifiedTime,size,description,appProperties,thumbnailLink)')
   driveUrl.searchParams.set('orderBy', 'modifiedTime desc')
   driveUrl.searchParams.set('pageSize', '100')
   driveUrl.searchParams.set('supportsAllDrives', 'true')

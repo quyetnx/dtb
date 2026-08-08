@@ -1,5 +1,6 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getDriveToken } from './_token'
+import { getDriveFolder } from './_folder'
 
 interface Env {
   GOOGLE_DRIVE_FOLDER_ID?: string
@@ -22,7 +23,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  const folderId = env.GOOGLE_DRIVE_FOLDER_ID ?? ''
+  const folderId = await getDriveFolder(env)
   const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name&supportsAllDrives=true'
 
   const buildBody = (withParent: boolean) => {

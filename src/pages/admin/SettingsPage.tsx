@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
-  Typography, Card, Switch, Button, message, Divider, Tag, Spin, Space, Input,
+  Typography, Card, Switch, Button, message, Divider, Tag, Spin, Space, Input, Select,
 } from 'antd'
 import {
   CheckCircleOutlined, WarningOutlined, DisconnectOutlined,
-  LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined, UserOutlined,
+  LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined, UserOutlined, FolderOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text, Paragraph } = Typography
@@ -32,6 +32,8 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
 }
 
 export default function SettingsPage() {
+  interface DriveFolder { id: string; name: string }
+
   const [drive, setDrive] = useState<DriveStatus | null>(null)
   const [driveLoading, setDriveLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
@@ -41,6 +43,11 @@ export default function SettingsPage() {
   const [bioBio, setBioBio] = useState('')
   const [bioBioDetail, setBioBioDetail] = useState('')
   const [bioSaving, setBioSaving] = useState(false)
+  const [folders, setFolders] = useState<DriveFolder[]>([])
+  const [currentFolder, setCurrentFolder] = useState('')
+  const [folderSource, setFolderSource] = useState<'kv' | 'env' | 'none'>('none')
+  const [folderSaving, setFolderSaving] = useState(false)
+  const [foldersLoading, setFoldersLoading] = useState(false)
   const [msg, ctxHolder] = message.useMessage()
 
   const loadDrive = () => {
@@ -66,6 +73,13 @@ export default function SettingsPage() {
         setBioBioDetail(d.bioDetail ?? '')
       })
       .catch(() => {})
+    fetch('/api/site/folder')
+      .then((r) => r.json())
+      .then((d: { folderId: string; source: 'kv' | 'env' | 'none' }) => {
+        setCurrentFolder(d.folderId)
+        setFolderSource(d.source)
+      })
+      .catch(() => {})
   }, [])
 
   const handleDisconnect = async () => {
@@ -78,6 +92,36 @@ export default function SettingsPage() {
       msg.error('Không thể ngắt kết nối')
     } finally {
       setDisconnecting(false)
+    }
+  }
+
+  const loadFolders = async () => {
+    setFoldersLoading(true)
+    try {
+      const res = await fetch('/api/drive/folders')
+      const data = await res.json() as { folders: DriveFolder[]; currentFolder: string }
+      setFolders(data.folders ?? [])
+    } catch {
+      msg.error('Không thể tải danh sách thư mục')
+    } finally {
+      setFoldersLoading(false)
+    }
+  }
+
+  const saveFolder = async () => {
+    setFolderSaving(true)
+    try {
+      await fetch('/api/site/folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderId: currentFolder }),
+      })
+      msg.success('Đã lưu thư mục nội dung')
+      setFolderSource('kv')
+    } catch {
+      msg.error('Không thể lưu')
+    } finally {
+      setFolderSaving(false)
     }
   }
 
@@ -266,6 +310,73 @@ export default function SettingsPage() {
             unCheckedChildren="Riêng tư"
           />
         </div>
+      </Section>
+
+      {/* ── Drive folder ─────────────────────────────── */}
+      <Section title="Thư mục nội dung Drive" icon={<FolderOutlined />}>
+        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 16 }}>
+          Tất cả bài viết, thơ và hình ảnh sẽ được lưu vào thư mục này trên Google Drive.
+          {folderSource === 'env' && (
+            <> Hiện đang dùng giá trị từ secret <Text code>GOOGLE_DRIVE_FOLDER_ID</Text>. Chọn thư mục bên dưới để ghi đè.</>
+          )}
+        </Paragraph>
+
+        {currentFolder && (
+          <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 6, padding: '8px 14px', marginBottom: 12, fontSize: 12 }}>
+            <Text type="secondary">ID thư mục hiện tại: </Text>
+            <Text code>{currentFolder}</Text>
+            {folderSource === 'env' && <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>từ secret</Tag>}
+            {folderSource === 'kv' && <Tag color="green" style={{ marginLeft: 8, fontSize: 11 }}>đã cài</Tag>}
+          </div>
+        )}
+
+        <Space wrap>
+          <Button
+            icon={foldersLoading ? <Spin size="small" /> : <FolderOutlined />}
+            onClick={loadFolders}
+            disabled={foldersLoading || !drive?.connected}
+          >
+            Tải danh sách thư mục
+          </Button>
+        </Space>
+
+        {folders.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>Chọn thư mục</Text>
+            <Select
+              style={{ width: '100%', marginBottom: 12 }}
+              placeholder="-- Chọn thư mục --"
+              value={currentFolder || undefined}
+              onChange={(val) => setCurrentFolder(val)}
+              options={folders.map((f) => ({ value: f.id, label: f.name }))}
+              showSearch
+              filterOption={(input, opt) => (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+            />
+            <Space>
+              <Button
+                type="primary"
+                loading={folderSaving}
+                onClick={saveFolder}
+                style={{ background: '#5d2e2e', borderColor: '#5d2e2e' }}
+              >
+                Lưu thư mục
+              </Button>
+              {currentFolder && (
+                <Button
+                  onClick={() => { setCurrentFolder(''); saveFolder() }}
+                >
+                  Bỏ cài đặt
+                </Button>
+              )}
+            </Space>
+          </div>
+        )}
+
+        {!drive?.connected && (
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Kết nối Google Drive trước để chọn thư mục.
+          </Text>
+        )}
       </Section>
 
       {/* ── Author bio ───────────────────────────────── */}

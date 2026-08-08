@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useSEO } from '../hooks/useSEO'
 
 interface FileItem {
   id: string
@@ -11,6 +12,7 @@ interface FileItem {
 const CATEGORY_FILTERS = ['Tất cả', 'Văn xuôi', 'Thơ']
 
 export default function LiteraturePage() {
+  useSEO({ title: 'Văn Thơ', description: 'Toàn bộ tác phẩm văn học, thơ ca và tùy bút của Dương Thanh Biểu.' })
   const [files, setFiles] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activeFilter, setActiveFilter] = useState('Tất cả')

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useSEO } from '../hooks/useSEO'
 
 const AUTHOR_PHOTO = 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
 
@@ -33,6 +34,8 @@ export default function HomePage() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [bio, setBio] = useState<Bio>(DEFAULT_BIO)
+
+  useSEO({})
 
   useEffect(() => {
     fetch('/api/drive/list')

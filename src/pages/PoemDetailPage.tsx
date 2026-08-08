@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useSEO } from '../hooks/useSEO'
 
 interface FileMeta {
+  id: string
+  name: string
+  modifiedTime: string
+  appProperties?: { type?: string; category?: string }
+  thumbnailLink?: string
+  description?: string
+}
+
+interface RelatedItem {
   id: string
   name: string
   modifiedTime: string
@@ -17,6 +27,7 @@ export default function PoemDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [revealed, setRevealed] = useState(false)
+  const [related, setRelated] = useState<RelatedItem[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -35,7 +46,20 @@ export default function PoemDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Copy protection: append copyright notice to copied text
+  // Fetch related content
+  useEffect(() => {
+    if (!meta) return
+    fetch('/api/drive/list')
+      .then((r) => r.json())
+      .then((d) => {
+        const files: RelatedItem[] = d.files ?? []
+        const candidates = files.filter((f) => f.id !== id && f.appProperties?.type === 'tho')
+        setRelated(candidates.slice(0, 3))
+      })
+      .catch(() => {})
+  }, [meta, id])
+
+  // Copy protection
   useEffect(() => {
     if (!meta) return
     const title = meta.name.replace(/\.md$/, '')
@@ -49,6 +73,16 @@ export default function PoemDetailPage() {
     document.addEventListener('copy', handleCopy)
     return () => document.removeEventListener('copy', handleCopy)
   }, [meta])
+
+  const title = meta?.name.replace(/\.md$/, '') ?? ''
+  const thumbUrl = meta?.thumbnailLink ? `/api/drive/thumb?id=${id}` : undefined
+
+  useSEO({
+    title: title || undefined,
+    description: meta?.description ?? (title ? `Bài thơ "${title}" của Dương Thanh Biểu.` : undefined),
+    image: thumbUrl,
+    type: 'article',
+  })
 
   if (loading) {
     return (
@@ -69,7 +103,6 @@ export default function PoemDetailPage() {
     )
   }
 
-  const title = meta.name.replace(/\.md$/, '')
   const stanzas = content.split(/\n{2,}/).filter((s) => s.trim())
   const showReveal = !revealed && stanzas.length > PREVIEW_STANZAS + 1
   const previewStanzas = stanzas.slice(0, PREVIEW_STANZAS)
@@ -121,7 +154,6 @@ export default function PoemDetailPage() {
 
           {/* Poem stanzas */}
           <div className="no-select" style={{ position: 'relative' }}>
-            {/* Preview stanzas */}
             <div className="flex flex-col gap-8">
               {(revealed ? stanzas : previewStanzas).map(renderStanza)}
             </div>
@@ -142,7 +174,6 @@ export default function PoemDetailPage() {
                   {restStanzas.map(renderStanza)}
                 </div>
 
-                {/* Fade + CTA */}
                 <div style={{
                   position: 'absolute',
                   inset: 0,
@@ -187,10 +218,7 @@ export default function PoemDetailPage() {
           </div>
 
           {/* Copyright footer */}
-          <div
-            className="divider-ornament my-10"
-            style={{ justifyContent: 'center' }}
-          >
+          <div className="divider-ornament my-10" style={{ justifyContent: 'center' }}>
             <span className="text-label px-4" style={{ color: 'var(--color-muted-border)' }}>✦</span>
           </div>
 
@@ -199,6 +227,34 @@ export default function PoemDetailPage() {
             Mọi quyền được bảo lưu.<br />
             Nghiêm cấm sao chép, tái bản khi chưa có sự đồng ý của tác giả.
           </p>
+
+          {/* ── Related poems ─────────────────────────── */}
+          {related.length > 0 && (
+            <div style={{ marginTop: '3rem', textAlign: 'left' }}>
+              <p className="text-label mb-4" style={{ color: 'var(--color-charcoal-muted)', textAlign: 'center' }}>Thơ khác</p>
+              <div>
+                {related.map((item) => (
+                  <Link key={item.id} to={`/tho/${item.id}`} className="related-card">
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontStyle: 'italic',
+                        fontSize: '1.1rem',
+                        color: 'var(--color-charcoal)',
+                        margin: 0,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {item.name.replace(/\.md$/, '')}
+                    </p>
+                    <p className="text-label mt-1" style={{ color: 'var(--color-charcoal-muted)', textAlign: 'center' }}>
+                      {new Date(item.modifiedTime).toLocaleDateString('vi-VN')}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-12">
             <Link

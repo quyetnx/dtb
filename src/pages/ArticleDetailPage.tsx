@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { marked, type TokenizerAndRendererExtension } from 'marked'
+import { useSEO } from '../hooks/useSEO'
 
 // Custom extension: [youtube:videoId] → embedded iframe
 const youtubeExtension: TokenizerAndRendererExtension = {
@@ -26,6 +27,16 @@ marked.use({ extensions: [youtubeExtension] })
 interface FileMeta {
   id: string
   name: string
+  mimeType?: string
+  modifiedTime: string
+  appProperties?: { type?: string; category?: string }
+  thumbnailLink?: string
+  description?: string
+}
+
+interface RelatedItem {
+  id: string
+  name: string
   modifiedTime: string
   appProperties?: { type?: string; category?: string }
 }
@@ -36,10 +47,12 @@ const MIN_PREVIEW_PARAGRAPHS = 3
 export default function ArticleDetailPage() {
   const { slug: id = '' } = useParams()
   const [content, setContent] = useState('')
+  const [format, setFormat] = useState<'markdown' | 'html'>('markdown')
   const [meta, setMeta] = useState<FileMeta | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [revealed, setRevealed] = useState(false)
+  const [related, setRelated] = useState<RelatedItem[]>([])
 
   useEffect(() => {
     if (!id) return
@@ -50,15 +63,39 @@ export default function ArticleDetailPage() {
       })
       .then((d) => {
         if (!d) return
-        const { content: raw, ...rest } = d
+        const { content: raw, format: fmt = 'markdown', ...rest } = d
         setContent(raw ?? '')
+        setFormat(fmt)
         setMeta(rest as FileMeta)
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
   }, [id])
 
-  // Copy protection: append copyright notice to copied text
+  // Fetch related content
+  useEffect(() => {
+    if (!meta) return
+    fetch('/api/drive/list')
+      .then((r) => r.json())
+      .then((d) => {
+        const files: RelatedItem[] = d.files ?? []
+        const currentType = meta.appProperties?.type
+        const currentCat = meta.appProperties?.category
+        const candidates = files.filter((f) => {
+          if (f.id === id) return false
+          const t = f.appProperties?.type
+          return t === 'van-xuoi' || t === 'nghe-thuat'
+        })
+        // Prefer same category
+        const sameCat = candidates.filter((f) => currentCat && f.appProperties?.category === currentCat)
+        const pool = sameCat.length >= 3 ? sameCat : [...sameCat, ...candidates.filter((f) => !sameCat.includes(f))]
+        void currentType
+        setRelated(pool.slice(0, 3))
+      })
+      .catch(() => {})
+  }, [meta, id])
+
+  // Copy protection
   useEffect(() => {
     if (!meta) return
     const title = meta.name.replace(/\.md$/, '')
@@ -72,6 +109,16 @@ export default function ArticleDetailPage() {
     document.addEventListener('copy', handleCopy)
     return () => document.removeEventListener('copy', handleCopy)
   }, [meta])
+
+  const title = meta?.name.replace(/\.md$/, '') ?? ''
+  const thumbUrl = meta?.thumbnailLink ? `/api/drive/thumb?id=${id}` : undefined
+
+  useSEO({
+    title: title || undefined,
+    description: meta?.description ?? (title ? `Tác phẩm "${title}" của Dương Thanh Biểu.` : undefined),
+    image: thumbUrl,
+    type: 'article',
+  })
 
   if (loading) {
     return (
@@ -92,16 +139,23 @@ export default function ArticleDetailPage() {
     )
   }
 
-  const title = meta.name.replace(/\.md$/, '')
+  // Content rendering: HTML (from Google Docs) or Markdown
+  let previewHtml = ''
+  let restHtml = ''
+  let fullHtml = ''
+  let hasRest = false
 
-  // Split content: first 30% visible, rest blurred
-  const paragraphs = content.split(/\n{2,}/).filter((s) => s.trim())
-  const previewCount = Math.max(MIN_PREVIEW_PARAGRAPHS, Math.ceil(paragraphs.length * PREVIEW_RATIO))
-  const hasRest = paragraphs.length > previewCount + 1
-
-  const previewHtml = marked.parse(paragraphs.slice(0, previewCount).join('\n\n')) as string
-  const restHtml = marked.parse(paragraphs.slice(previewCount).join('\n\n')) as string
-  const fullHtml = marked.parse(content) as string
+  if (format === 'html') {
+    fullHtml = content
+    hasRest = false // HTML content shown fully (DOCX structure already defined)
+  } else {
+    const paragraphs = content.split(/\n{2,}/).filter((s) => s.trim())
+    const previewCount = Math.max(MIN_PREVIEW_PARAGRAPHS, Math.ceil(paragraphs.length * PREVIEW_RATIO))
+    hasRest = paragraphs.length > previewCount + 1
+    previewHtml = marked.parse(paragraphs.slice(0, previewCount).join('\n\n')) as string
+    restHtml = marked.parse(paragraphs.slice(previewCount).join('\n\n')) as string
+    fullHtml = marked.parse(content) as string
+  }
 
   return (
     <>
@@ -147,7 +201,7 @@ export default function ArticleDetailPage() {
           style={{ maxWidth: '720px', margin: '0 auto', borderBottom: '1px solid var(--color-muted-border)' }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          {revealed || !hasRest ? (
+          {format === 'html' || revealed || !hasRest ? (
             /* Full content */
             <div
               className="pb-16 prose-content no-select"
@@ -156,13 +210,11 @@ export default function ArticleDetailPage() {
           ) : (
             /* Preview + blurred rest */
             <div className="pb-8">
-              {/* Visible preview */}
               <div
                 className="prose-content no-select"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
 
-              {/* Blurred rest */}
               <div style={{ position: 'relative' }}>
                 <div
                   className="prose-content no-select"
@@ -176,7 +228,6 @@ export default function ArticleDetailPage() {
                   dangerouslySetInnerHTML={{ __html: restHtml }}
                 />
 
-                {/* Gradient fade + CTA */}
                 <div style={{
                   position: 'absolute',
                   inset: 0,
@@ -237,6 +288,41 @@ export default function ArticleDetailPage() {
             </p>
           </div>
         </div>
+
+        {/* ── Related content ─────────────────────────────── */}
+        {related.length > 0 && (
+          <div style={{ maxWidth: '720px', margin: '0 auto', paddingTop: '3rem', paddingBottom: '1rem' }}>
+            <p className="text-label mb-6" style={{ color: 'var(--color-charcoal-muted)' }}>Có thể bạn cũng thích</p>
+            <div>
+              {related.map((item) => {
+                const itemType = item.appProperties?.type
+                const href = itemType === 'tho' ? `/tho/${item.id}` : `/van-tho/${item.id}`
+                return (
+                  <Link key={item.id} to={href} className="related-card">
+                    {item.appProperties?.category && (
+                      <p className="text-label mb-1" style={{ color: 'var(--color-oxblood)' }}>
+                        {item.appProperties.category}
+                      </p>
+                    )}
+                    <p
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '1.15rem',
+                        color: 'var(--color-charcoal)',
+                        margin: 0,
+                      }}
+                    >
+                      {item.name.replace(/\.md$/, '')}
+                    </p>
+                    <p className="text-label mt-1" style={{ color: 'var(--color-charcoal-muted)' }}>
+                      {new Date(item.modifiedTime).toLocaleDateString('vi-VN')}
+                    </p>
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="py-10" style={{ maxWidth: '720px', margin: '0 auto' }}>
           <Link

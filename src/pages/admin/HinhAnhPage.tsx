@@ -49,9 +49,20 @@ export default function HinhAnhPage() {
   }
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/drive/file?id=${id}`, { method: 'DELETE' })
-    msg.success('Đã xóa')
-    load()
+    try {
+      const res = await fetch(`/api/drive/file?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string; detail?: string }
+        const errText = body.error ?? `HTTP ${res.status}`
+        const detail = body.detail ? ` — ${body.detail}` : ''
+        msg.error({ content: `Xóa thất bại: ${errText}${detail}`, duration: 8 })
+        return
+      }
+      msg.success('Đã xóa')
+      load()
+    } catch {
+      msg.error('Lỗi kết nối khi xóa')
+    }
   }
 
   const copyUrl = (id: string) => {

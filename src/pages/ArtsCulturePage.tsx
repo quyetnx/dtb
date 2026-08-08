@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSEO } from '../hooks/useSEO'
 
 interface FileItem {
   id: string
@@ -8,6 +9,7 @@ interface FileItem {
 }
 
 export default function ArtsCulturePage() {
+  useSEO({ title: 'Nghệ thuật & Văn hóa', description: 'Phê bình văn học, nghệ thuật và văn hóa của Dương Thanh Biểu.' })
   const [files, setFiles] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(true)
 

@@ -1,5 +1,7 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
 import { getDriveToken } from './_token'
+import { getDriveFolder } from './_folder'
+import { cleanGoogleDocsHtml } from './_htmlClean'
 
 interface Env {
   GOOGLE_DRIVE_FOLDER_ID?: string
@@ -21,24 +23,44 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  const [contentRes, metaRes] = await Promise.all([
-    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,modifiedTime,appProperties&supportsAllDrives=true`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }),
-  ])
+  const metaRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,mimeType,modifiedTime,appProperties,thumbnailLink,description&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (!metaRes.ok) {
+    const detail = await metaRes.text()
+    return Response.json({ error: 'Không tìm thấy file', detail }, { status: 404 })
+  }
+  const meta = await metaRes.json() as Record<string, unknown>
+  const mimeType = meta.mimeType as string
 
+  // Google Docs native → export as HTML (preserves images + formatting)
+  if (mimeType === 'application/vnd.google-apps.document') {
+    const exportRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}/export?mimeType=text/html`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (!exportRes.ok) {
+      const detail = await exportRes.text()
+      return Response.json({ error: 'Xuất tài liệu thất bại', detail }, { status: 500 })
+    }
+    const rawHtml = await exportRes.text()
+    const content = cleanGoogleDocsHtml(rawHtml)
+    return Response.json({ content, format: 'html', ...meta })
+  }
+
+  // Plain text / markdown
+  const contentRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
   if (!contentRes.ok) {
     const detail = await contentRes.text()
     console.error('[drive/file] GET content failed', contentRes.status, detail)
     return Response.json({ error: 'Không tìm thấy file', detail }, { status: 404 })
   }
-
   const content = await contentRes.text()
-  const meta = metaRes.ok ? await metaRes.json() : {}
-  return Response.json({ content, ...meta })
+  return Response.json({ content, format: 'markdown', ...meta })
 }
 
 // POST /api/drive/file — create new file
@@ -57,7 +79,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  const folderId = body.folder ?? env.GOOGLE_DRIVE_FOLDER_ID ?? ''
+  const folderId = body.folder ?? await getDriveFolder(env)
 
   const buildForm = (withParent: boolean) => {
     const metadata: Record<string, unknown> = {
@@ -166,7 +188,7 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/trash`, {
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/trash?supportsAllDrives=true`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   })
