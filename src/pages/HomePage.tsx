@@ -137,6 +137,7 @@ export default function HomePage() {
                   style={{
                     borderTop: '1px solid var(--color-muted-border)',
                     borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
+                    minHeight: 180,
                   }}
                 >
                   {f.appProperties?.category && (
@@ -145,8 +146,17 @@ export default function HomePage() {
                     </p>
                   )}
                   <h3
-                    className="text-display-sm mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
-                    style={{ color: 'var(--color-charcoal)' }}
+                    className="mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                    style={{
+                      color: 'var(--color-charcoal)',
+                      fontSize: 20,
+                      fontWeight: 700,
+                      lineHeight: 1.35,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
                   >
                     {f.name.replace(/\.md$/, '')}
                   </h3>
@@ -215,7 +225,7 @@ export default function HomePage() {
                       </div>
                       <span
                         className="material-symbols-outlined text-xl mt-1 transition-transform group-hover:translate-x-1"
-                        style={{ color: 'var(--color-muted-border)' }}
+                        style={{ color: 'var(--color-muted-border)', flexShrink: 0 }}
                       >
                         arrow_forward
                       </span>
@@ -275,13 +285,28 @@ export default function HomePage() {
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-display-sm mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
-                    style={{ color: 'var(--color-charcoal)', lineHeight: 1.4 }}>
-                    {v.title}
-                  </h3>
-                  <p className="text-label mt-1" style={{ color: 'var(--color-charcoal-muted)' }}>
-                    {new Date(v.publishedAt).toLocaleDateString('vi-VN')}
-                  </p>
+                  <div className="flex flex-col flex-1">
+                    <h3
+                      className="mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                      style={{
+                        color: 'var(--color-charcoal)',
+                        fontSize: 15,
+                        fontWeight: 600,
+                        lineHeight: 1.4,
+                        margin: 0,
+                        marginTop: 12,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {v.title}
+                    </h3>
+                    <p className="text-label mt-1" style={{ color: 'var(--color-charcoal-muted)' }}>
+                      {new Date(v.publishedAt).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
                 </Link>
               ))}
             </div>
