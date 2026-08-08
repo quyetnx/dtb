@@ -114,11 +114,14 @@ export default function VideoDetailPage() {
         <span
           style={{
             color: 'var(--color-charcoal)',
-            maxWidth: 260,
+            maxWidth: 220,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            display: 'inline-block',
+            verticalAlign: 'bottom',
           }}
+          title={video.title}
         >
           {video.title}
         </span>
@@ -219,6 +222,8 @@ export default function VideoDetailPage() {
                 lineHeight: 1.25,
                 fontWeight: 500,
                 color: 'var(--color-charcoal)',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
               }}
             >
               {video.title}
