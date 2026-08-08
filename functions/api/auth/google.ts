@@ -16,9 +16,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   authUrl.searchParams.set('client_id', env.GOOGLE_CLIENT_ID)
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('response_type', 'code')
-  authUrl.searchParams.set('scope', 'openid email profile')
-  authUrl.searchParams.set('access_type', 'online')
-  authUrl.searchParams.set('prompt', 'select_account')
+  authUrl.searchParams.set('scope', 'openid email profile https://www.googleapis.com/auth/drive')
+  authUrl.searchParams.set('access_type', 'offline')
+  authUrl.searchParams.set('prompt', 'consent')
 
   return Response.redirect(authUrl.toString(), 302)
 }

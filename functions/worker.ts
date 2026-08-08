@@ -12,8 +12,8 @@ import {
 import { onRequestGet as handleDriveImage } from './api/drive/image'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
-import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 
+import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 interface Env {
   ASSETS: Fetcher
   SESSIONS: KVNamespace
@@ -21,7 +21,6 @@ interface Env {
   GOOGLE_CLIENT_SECRET: string
   ADMIN_EMAILS: string
   SESSION_SECRET: string
-  GOOGLE_SERVICE_ACCOUNT_KEY: string
   GOOGLE_DRIVE_FOLDER_ID: string
   YOUTUBE_API_KEY: string
   YOUTUBE_CHANNEL_ID: string

@@ -1,42 +1,11 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
+import { getDriveToken } from './_token'
 
 interface Env {
-  GOOGLE_SERVICE_ACCOUNT_KEY: string
   GOOGLE_DRIVE_FOLDER_ID: string
   SESSIONS: KVNamespace
-}
-
-async function getServiceAccountToken(serviceAccountKey: string): Promise<string> {
-  const key = JSON.parse(serviceAccountKey)
-  const now = Math.floor(Date.now() / 1000)
-  const header = { alg: 'RS256', typ: 'JWT' }
-  const payload = {
-    iss: key.client_email,
-    scope: 'https://www.googleapis.com/auth/drive',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: now + 3600,
-    iat: now,
-  }
-  const encode = (obj: object) =>
-    btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-  const signingInput = `${encode(header)}.${encode(payload)}`
-  const pemContent = key.private_key
-    .replace('-----BEGIN PRIVATE KEY-----', '')
-    .replace('-----END PRIVATE KEY-----', '')
-    .replace(/\s/g, '')
-  const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0))
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8', binaryKey, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign'],
-  )
-  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, new TextEncoder().encode(signingInput))
-  const sig = btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${signingInput}.${sig}` }),
-  })
-  const { access_token } = (await tokenRes.json()) as { access_token: string }
-  return access_token
+  GOOGLE_CLIENT_ID: string
+  GOOGLE_CLIENT_SECRET: string
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
@@ -46,7 +15,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   if (!file) return Response.json({ error: 'No file' }, { status: 400 })
 
-  const token = await getServiceAccountToken(env.GOOGLE_SERVICE_ACCOUNT_KEY)
+  const token = await getDriveToken(env)
+
   const metadata = {
     name,
     parents: [env.GOOGLE_DRIVE_FOLDER_ID],
@@ -58,10 +28,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   body.append('file', file)
 
   const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name&supportsAllDrives=true',
     { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body },
   )
 
-  if (!res.ok) return Response.json({ error: 'Upload failed' }, { status: 500 })
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('[upload-image] failed', res.status, err)
+    return Response.json({ error: 'Upload failed', detail: err }, { status: 500 })
+  }
+
   return Response.json(await res.json(), { status: 201 })
 }

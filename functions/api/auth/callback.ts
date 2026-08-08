@@ -10,6 +10,7 @@ interface Env {
 
 interface GoogleTokenResponse {
   access_token: string
+  refresh_token?: string
   id_token: string
   token_type: string
 }
@@ -65,6 +66,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const allowedEmails = env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
   if (!allowedEmails.includes(user.email.toLowerCase())) {
     return new Response('Access denied: email not authorized', { status: 403 })
+  }
+
+  // Store Drive credentials in KV (used by all Drive API functions)
+  if (tokens.refresh_token) {
+    await env.SESSIONS.put('drive:refresh_token', tokens.refresh_token)
+  }
+  if (tokens.access_token) {
+    await env.SESSIONS.put('drive:access_token', tokens.access_token, { expirationTtl: 3300 })
   }
 
   // Create session
