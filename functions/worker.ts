@@ -12,6 +12,7 @@ import {
 import { onRequestGet as handleDriveImage } from './api/drive/image'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
+import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } from './api/site/bio'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleDriveStatus } from './api/drive/status'
 import { onRequestPost as handleDriveDisconnect } from './api/drive/disconnect'
@@ -60,6 +61,7 @@ export default {
 
     // ── Public routes (no auth required) ──────────────────────────────────
     if (path === '/api/site/status' && method === 'GET') return handleSiteStatusGet(makeCtx(request, env))
+    if (path === '/api/site/bio' && method === 'GET') return handleSiteBioGet(makeCtx(request, env))
     if (path === '/api/auth/google' && method === 'GET') return handleAuthGoogle(makeCtx(request, env))
     if (path === '/api/auth/callback' && method === 'GET') return handleAuthCallback(makeCtx(request, env))
     if (path === '/api/auth/me' && method === 'GET') return handleAuthMe(makeCtx(request, env))
@@ -90,6 +92,7 @@ export default {
     }
     if (path === '/api/drive/upload-image' && method === 'POST') return handleUploadImage(makeCtx(request, env))
     if (path === '/api/site/status' && method === 'POST') return handleSiteStatusPost(makeCtx(request, env))
+    if (path === '/api/site/bio' && method === 'POST') return handleSiteBioPost(makeCtx(request, env))
 
     return new Response('Not Found', { status: 404 })
   },

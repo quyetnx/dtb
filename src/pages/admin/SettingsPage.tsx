@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import {
-  Typography, Card, Switch, Button, message, Divider, Tag, Spin, Space,
+  Typography, Card, Switch, Button, message, Divider, Tag, Spin, Space, Input,
 } from 'antd'
 import {
   CheckCircleOutlined, WarningOutlined, DisconnectOutlined,
-  LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined,
+  LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined, UserOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text, Paragraph } = Typography
+const { TextArea } = Input
 
 interface DriveStatus {
   connected: boolean
@@ -36,6 +37,10 @@ export default function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false)
   const [sitePublic, setSitePublic] = useState(false)
   const [siteLoading, setSiteLoading] = useState(false)
+  const [bioQuote, setBioQuote] = useState('')
+  const [bioBio, setBioBio] = useState('')
+  const [bioBioDetail, setBioBioDetail] = useState('')
+  const [bioSaving, setBioSaving] = useState(false)
   const [msg, ctxHolder] = message.useMessage()
 
   const loadDrive = () => {
@@ -53,6 +58,14 @@ export default function SettingsPage() {
       .then((r) => r.json())
       .then((d: { public: boolean }) => setSitePublic(d.public))
       .catch(() => {})
+    fetch('/api/site/bio')
+      .then((r) => r.json())
+      .then((d: { quote?: string; bio?: string; bioDetail?: string }) => {
+        setBioQuote(d.quote ?? '')
+        setBioBio(d.bio ?? '')
+        setBioBioDetail(d.bioDetail ?? '')
+      })
+      .catch(() => {})
   }, [])
 
   const handleDisconnect = async () => {
@@ -65,6 +78,22 @@ export default function SettingsPage() {
       msg.error('Không thể ngắt kết nối')
     } finally {
       setDisconnecting(false)
+    }
+  }
+
+  const saveBio = async () => {
+    setBioSaving(true)
+    try {
+      await fetch('/api/site/bio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quote: bioQuote, bio: bioBio, bioDetail: bioBioDetail }),
+      })
+      msg.success('Đã lưu thông tin tác giả')
+    } catch {
+      msg.error('Không thể lưu')
+    } finally {
+      setBioSaving(false)
     }
   }
 
@@ -237,6 +266,52 @@ export default function SettingsPage() {
             unCheckedChildren="Riêng tư"
           />
         </div>
+      </Section>
+
+      {/* ── Author bio ───────────────────────────────── */}
+      <Section title="Thông tin tác giả" icon={<UserOutlined />}>
+        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 20 }}>
+          Nội dung hiển thị trên trang chủ. Thay đổi sẽ có hiệu lực ngay sau khi lưu.
+        </Paragraph>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Câu trích dẫn (hero)</Text>
+          <TextArea
+            value={bioQuote}
+            onChange={(e) => setBioQuote(e.target.value)}
+            rows={3}
+            placeholder="Câu quote ngắn hiển thị ở phần hero trang chủ..."
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Giới thiệu tác giả</Text>
+          <TextArea
+            value={bioBio}
+            onChange={(e) => setBioBio(e.target.value)}
+            rows={3}
+            placeholder="Câu giới thiệu chính về tác giả (hiển thị nổi bật ở cuối trang)..."
+          />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Mô tả thêm</Text>
+          <TextArea
+            value={bioBioDetail}
+            onChange={(e) => setBioBioDetail(e.target.value)}
+            rows={3}
+            placeholder="Đoạn mô tả bổ sung về phong cách sáng tác..."
+          />
+        </div>
+
+        <Button
+          type="primary"
+          loading={bioSaving}
+          onClick={saveBio}
+          style={{ background: '#7c3535', borderColor: '#7c3535' }}
+        >
+          Lưu thông tin
+        </Button>
       </Section>
     </div>
   )

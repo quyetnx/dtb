@@ -17,9 +17,22 @@ interface VideoItem {
   thumbnail: string
 }
 
+interface Bio {
+  quote: string
+  bio: string
+  bioDetail: string
+}
+
+const DEFAULT_BIO: Bio = {
+  quote: 'Văn chương là cầu nối giữa tâm hồn con người với con người, giữa quá khứ và hiện tại, giữa đau thương và hy vọng.',
+  bio: 'Dương Thanh Biểu là nhà văn, nhà thơ người Việt Nam với hơn bốn thập kỷ cầm bút.',
+  bioDetail: 'Tác phẩm của ông phản ánh sâu sắc hiện thực lịch sử, tình người và quê hương đất nước qua từng giai đoạn của dân tộc.',
+}
+
 export default function HomePage() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [videos, setVideos] = useState<VideoItem[]>([])
+  const [bio, setBio] = useState<Bio>(DEFAULT_BIO)
 
   useEffect(() => {
     fetch('/api/drive/list')
@@ -30,6 +43,10 @@ export default function HomePage() {
       .then((r) => r.json())
       .then((d) => setVideos(d.items ?? []))
       .catch(() => {})
+    fetch('/api/site/bio')
+      .then((r) => r.json())
+      .then((d: Bio) => setBio(d))
+      .catch(() => {})
   }, [])
 
   const vanXuoi = files.filter((f) => f.appProperties?.type === 'van-xuoi').slice(0, 3)
@@ -37,7 +54,7 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Hero */}
+      {/* ── Hero ─────────────────────────────────────────── */}
       <section className="section-gap" style={{ borderBottom: '1px solid var(--color-muted-border)' }}>
         <div className="container-main">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
@@ -55,16 +72,17 @@ export default function HomePage() {
                 Văn học & Thi ca
               </p>
 
-              <blockquote
-                className="mt-10 pl-5 text-body-lg italic"
-                style={{
-                  color: 'var(--color-charcoal-muted)',
-                  borderLeft: '3px solid var(--color-oxblood)',
-                }}
-              >
-                "Văn chương là cầu nối giữa tâm hồn con người với con người, giữa quá khứ và
-                hiện tại, giữa đau thương và hy vọng."
-              </blockquote>
+              {bio.quote && (
+                <blockquote
+                  className="mt-10 pl-5 text-body-lg italic"
+                  style={{
+                    color: 'var(--color-charcoal-muted)',
+                    borderLeft: '3px solid var(--color-oxblood)',
+                  }}
+                >
+                  "{bio.quote}"
+                </blockquote>
+              )}
 
               <div className="mt-10 flex flex-wrap gap-4">
                 <Link
@@ -92,20 +110,32 @@ export default function HomePage() {
             <div className="lg:col-span-5 order-1 lg:order-2">
               <div
                 className="relative overflow-hidden"
-                style={{ aspectRatio: '3/4', borderRadius: '2px', backgroundColor: 'var(--color-paper-ivory-dark)' }}
+                style={{
+                  aspectRatio: '3/4',
+                  borderRadius: '2px',
+                  backgroundColor: 'var(--color-paper-ivory-dark)',
+                  maxHeight: '70vh',
+                }}
               >
                 <img
                   src={AUTHOR_PHOTO}
                   alt="Dương Thanh Biểu"
                   className="w-full h-full object-cover object-top"
                 />
+                {/* Subtle gradient at bottom */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0, left: 0, right: 0,
+                  height: 80,
+                  background: 'linear-gradient(to top, rgba(250,249,245,0.6), transparent)',
+                }} />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Featured Literature */}
+      {/* ── Featured Literature ───────────────────────────── */}
       {vanXuoi.length > 0 && (
         <section className="section-gap">
           <div className="container-main">
@@ -171,16 +201,9 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Divider */}
-      {vanXuoi.length > 0 && tho.length > 0 && (
-        <div className="container-main">
-          <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
-        </div>
-      )}
-
-      {/* Featured Poems */}
+      {/* ── Featured Poems ────────────────────────────────── */}
       {tho.length > 0 && (
-        <section className="section-gap">
+        <section className="section-gap" style={{ borderTop: vanXuoi.length > 0 ? 'none' : '1px solid var(--color-muted-border)' }}>
           <div className="container-main">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
               <div className="lg:col-span-3">
@@ -238,7 +261,7 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* YouTube section */}
+      {/* ── YouTube section ───────────────────────────────── */}
       {videos.length > 0 && (
         <section className="section-gap" style={{ borderTop: '1px solid var(--color-muted-border)' }}>
           <div className="container-main">
@@ -264,42 +287,45 @@ export default function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
               {videos.map((v) => (
                 <Link key={v.id} to="/video" className="group block">
-                  <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: '2px', overflow: 'hidden', backgroundColor: '#111' }}>
+                  <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: '4px', overflow: 'hidden', backgroundColor: '#111' }}>
                     <img
                       src={v.thumbnail}
                       alt={v.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.2s' }}
-                      className="group-hover:opacity-80"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.2s, transform 0.3s' }}
+                      className="group-hover:opacity-80 group-hover:scale-105"
                     />
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{
                         width: 44,
                         height: 44,
                         borderRadius: '50%',
-                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        backgroundColor: 'rgba(255,255,255,0.92)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                      }}>
+                        transition: 'transform 0.2s',
+                      }}
+                        className="group-hover:scale-110"
+                      >
                         <span className="material-symbols-outlined" style={{ color: '#c00', fontSize: 22, marginLeft: 2 }}>play_arrow</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col flex-1">
+                  <div className="mt-3 flex flex-col">
                     <h3
-                      className="mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
                       style={{
                         color: 'var(--color-charcoal)',
                         fontSize: 15,
                         fontWeight: 600,
                         lineHeight: 1.4,
                         margin: 0,
-                        marginTop: 12,
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
+                        transition: 'color 0.15s',
                       }}
+                      className="group-hover:text-[var(--color-oxblood)]"
                     >
                       {v.title}
                     </h3>
@@ -314,25 +340,54 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* About banner */}
+      {/* ── About banner ─────────────────────────────────── */}
       <section
         className="section-gap"
         style={{ backgroundColor: 'var(--color-oxblood)', color: 'white' }}
       >
-        <div className="container-main text-center">
-          <p className="text-label mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            Về tác giả
-          </p>
-          <h2 className="text-display-lg" style={{ color: 'white', maxWidth: '720px', margin: '0 auto' }}>
-            Dương Thanh Biểu là nhà văn, nhà thơ người Việt Nam với hơn bốn thập kỷ cầm bút
-          </h2>
-          <p
-            className="text-body-lg mt-6 mx-auto"
-            style={{ color: 'rgba(255,255,255,0.8)', maxWidth: '600px' }}
-          >
-            Tác phẩm của ông phản ánh sâu sắc hiện thực lịch sử, tình người và quê hương đất
-            nước qua từng giai đoạn của dân tộc.
-          </p>
+        <div className="container-main">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-8">
+              <p className="text-label mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                Về tác giả
+              </p>
+              <h2 className="text-display-lg" style={{ color: 'white', lineHeight: 1.2 }}>
+                {bio.bio}
+              </h2>
+              {bio.bioDetail && (
+                <p className="text-body-lg mt-6" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  {bio.bioDetail}
+                </p>
+              )}
+            </div>
+            <div className="lg:col-span-4 flex lg:justify-end">
+              <div style={{
+                width: 1,
+                alignSelf: 'stretch',
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                display: 'none',
+              }}
+                className="lg:block"
+              />
+              <div className="lg:pl-12">
+                <div className="text-label mb-4" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                  Tác phẩm tiêu biểu
+                </div>
+                {['Đêm trắng', 'Vùng đất lửa', 'Hồi ký chiến trường'].map((title) => (
+                  <div key={title} style={{
+                    padding: '10px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.1)',
+                    fontFamily: 'var(--font-display)',
+                    fontSize: '1.1rem',
+                    color: 'rgba(255,255,255,0.85)',
+                    fontStyle: 'italic',
+                  }}>
+                    {title}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </>
