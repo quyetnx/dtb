@@ -188,9 +188,10 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/trash?supportsAllDrives=true`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trashed: true }),
   })
   if (!res.ok) {
     const err = await res.text()
