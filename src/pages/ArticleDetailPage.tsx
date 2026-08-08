@@ -233,7 +233,7 @@ export default function ArticleDetailPage() {
           style={{ maxWidth: '720px', margin: '0 auto', borderBottom: '1px solid var(--color-muted-border)' }}
           onContextMenu={(e) => e.preventDefault()}
         >
-          {format === 'html' || revealed || !hasRest ? (
+          {revealed || !hasRest ? (
             /* Full content */
             <div
               className="pb-16 prose-content no-select"
