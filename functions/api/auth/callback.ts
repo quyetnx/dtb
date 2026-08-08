@@ -64,7 +64,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // Check admin whitelist
   const allowedEmails = env.ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
   if (!allowedEmails.includes(user.email.toLowerCase())) {
-    return new Response(`Access denied: ${user.email} not in [${allowedEmails.join(', ')}]`, { status: 403 })
+    return new Response('Access denied: email not authorized', { status: 403 })
   }
 
   // Create session
