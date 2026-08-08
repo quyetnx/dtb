@@ -48,6 +48,23 @@ export default {
     const method = request.method
 
     if (path.startsWith('/api/')) {
+      // Temporary debug endpoint — remove after fix
+      if (path === '/api/debug/env' && method === 'GET') {
+        const mask = (v: string | undefined) =>
+          !v ? '(empty)' : v.length <= 8 ? '***' : `${v.slice(0, 6)}...${v.slice(-6)}`
+        return Response.json({
+          GOOGLE_CLIENT_ID: mask(env.GOOGLE_CLIENT_ID),
+          GOOGLE_CLIENT_ID_ends_with: env.GOOGLE_CLIENT_ID?.endsWith('.apps.googleusercontent.com') ?? false,
+          GOOGLE_CLIENT_ID_length: env.GOOGLE_CLIENT_ID?.length ?? 0,
+          GOOGLE_CLIENT_SECRET: mask(env.GOOGLE_CLIENT_SECRET),
+          GOOGLE_CLIENT_SECRET_starts_with_GOCSPX: env.GOOGLE_CLIENT_SECRET?.startsWith('GOCSPX-') ?? false,
+          ADMIN_EMAILS: env.ADMIN_EMAILS ?? '(empty)',
+          SESSION_SECRET: mask(env.SESSION_SECRET),
+          GOOGLE_SERVICE_ACCOUNT_KEY: mask(env.GOOGLE_SERVICE_ACCOUNT_KEY),
+          GOOGLE_DRIVE_FOLDER_ID: env.GOOGLE_DRIVE_FOLDER_ID ?? '(empty)',
+        })
+      }
+
       // Public auth routes
       if (path === '/api/auth/google' && method === 'GET') return handleAuthGoogle(makeCtx(request, env))
       if (path === '/api/auth/callback' && method === 'GET') return handleAuthCallback(makeCtx(request, env))
