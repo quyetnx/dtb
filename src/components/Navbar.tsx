@@ -41,24 +41,7 @@ export default function Navbar() {
       >
         <div className="container-main h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5" style={{ lineHeight: 1 }}>
-            <div style={{
-              width: 28,
-              height: 28,
-              borderRadius: 4,
-              backgroundColor: 'var(--color-oxblood)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              color: 'white',
-              fontFamily: 'var(--font-display)',
-              fontSize: 14,
-              fontWeight: 600,
-              letterSpacing: '-0.01em',
-            }}>
-              Đ
-            </div>
+          <Link to="/" style={{ lineHeight: 1 }}>
             <span
               className="font-display"
               style={{
