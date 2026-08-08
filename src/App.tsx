@@ -8,6 +8,7 @@ import ArticleDetailPage from './pages/ArticleDetailPage'
 import PoemDetailPage from './pages/PoemDetailPage'
 import ArtsCulturePage from './pages/ArtsCulturePage'
 import VideoPage from './pages/VideoPage'
+import VideoDetailPage from './pages/VideoDetailPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
@@ -173,6 +174,7 @@ export default function App() {
                     <Route path="/tho/:slug" element={<PoemDetailPage />} />
                     <Route path="/nghe-thuat-van-hoa" element={<ArtsCulturePage />} />
                     <Route path="/video" element={<VideoPage />} />
+                    <Route path="/video/:id" element={<VideoDetailPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>
