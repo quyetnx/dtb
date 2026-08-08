@@ -321,7 +321,7 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
               {videos.map((v) => (
-                <Link key={v.id} to="/video" className="group block">
+                <Link key={v.id} to={`/video/${v.id}`} className="group block">
                   <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: '4px', overflow: 'hidden', backgroundColor: '#111' }}>
                     <img
                       src={v.thumbnail}

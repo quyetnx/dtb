@@ -55,6 +55,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         ?? '',
       duration: item.contentDetails.duration,
     },
-    { headers: { 'Cache-Control': 'public, max-age=3600' } },
+    { headers: { 'Cache-Control': 'private, max-age=300' } },
   )
 }

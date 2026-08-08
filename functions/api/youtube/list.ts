@@ -17,6 +17,28 @@ interface SearchItem {
   }
 }
 
+interface YTSearchResponse {
+  items: SearchItem[]
+  nextPageToken?: string
+  prevPageToken?: string
+}
+
+interface VideoItem {
+  id: string
+  title: string
+  description: string
+  publishedAt: string
+  thumbnail: string
+  channelTitle: string
+}
+
+interface CachedPage {
+  items: VideoItem[]
+  nextPageToken: string | null
+  prevPageToken: string | null
+  fetchedAt: number
+}
+
 async function resolveChannelId(handle: string, apiKey: string): Promise<string> {
   if (handle.startsWith('UC')) return handle
   const lookup = handle.startsWith('@') ? handle : `@${handle}`
@@ -37,11 +59,61 @@ async function getPublishedIds(env: Env): Promise<Set<string>> {
   return new Set(data?.ids ?? [])
 }
 
+// Fetch from YouTube and cache result in KV for 5 minutes
+async function fetchFromYouTube(
+  channelId: string,
+  maxResults: string,
+  q: string,
+  pageToken: string,
+  apiKey: string,
+  env: Env,
+): Promise<CachedPage | null> {
+  const cacheKey = `yt:list:${channelId}:${maxResults}:${q}:${pageToken}`
+  const cached = await env.SESSIONS.get(cacheKey, { type: 'json' }) as CachedPage | null
+  if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) return cached
+
+  const apiUrl = new URL('https://www.googleapis.com/youtube/v3/search')
+  apiUrl.searchParams.set('part', 'snippet')
+  apiUrl.searchParams.set('channelId', channelId)
+  apiUrl.searchParams.set('type', 'video')
+  apiUrl.searchParams.set('order', q ? 'relevance' : 'viewCount')
+  apiUrl.searchParams.set('maxResults', maxResults)
+  apiUrl.searchParams.set('key', apiKey)
+  if (q) apiUrl.searchParams.set('q', q)
+  if (pageToken) apiUrl.searchParams.set('pageToken', pageToken)
+
+  const res = await fetch(apiUrl.toString())
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('[youtube/list] Search API error', res.status, err)
+    return null
+  }
+
+  const data = (await res.json()) as YTSearchResponse
+  const items: VideoItem[] = (data.items ?? [])
+    .filter((item) => item.id?.videoId)
+    .map((item) => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      description: item.snippet.description,
+      publishedAt: item.snippet.publishedAt,
+      thumbnail: item.snippet.thumbnails.high?.url ?? item.snippet.thumbnails.medium?.url ?? '',
+      channelTitle: item.snippet.channelTitle,
+    }))
+
+  const page: CachedPage = {
+    items,
+    nextPageToken: data.nextPageToken ?? null,
+    prevPageToken: data.prevPageToken ?? null,
+    fetchedAt: Date.now(),
+  }
+  await env.SESSIONS.put(cacheKey, JSON.stringify(page), { expirationTtl: 600 })
+  return page
+}
+
 // GET /api/youtube/list
-// Default: popular videos (order=viewCount, type=video), filtered to published only
-// ?admin=1: all videos, no filter (auth enforced by worker)
-// ?q=keyword: relevance order
-// ?maxResults=N&pageToken=...
+// Public (default): filter to published IDs only; response not cached at edge
+// Admin (?admin=1): all videos, no publish filter; auth enforced in worker
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (!env.YOUTUBE_API_KEY || !env.YOUTUBE_CHANNEL_ID) {
     return Response.json({ items: [], error: 'YOUTUBE_API_KEY or YOUTUBE_CHANNEL_ID not configured' })
@@ -62,52 +134,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ items: [], error: msg }, { status: 502 })
   }
 
-  // For admin: fetch more to show full catalogue
-  const fetchMax = isAdmin ? String(Math.min(50, parseInt(maxResults) * 3)) : maxResults
-
-  const apiUrl = new URL('https://www.googleapis.com/youtube/v3/search')
-  apiUrl.searchParams.set('part', 'snippet')
-  apiUrl.searchParams.set('channelId', channelId)
-  apiUrl.searchParams.set('type', 'video')
-  apiUrl.searchParams.set('order', q ? 'relevance' : 'viewCount')
-  apiUrl.searchParams.set('maxResults', fetchMax)
-  apiUrl.searchParams.set('key', env.YOUTUBE_API_KEY)
-  if (q) apiUrl.searchParams.set('q', q)
-  if (pageToken) apiUrl.searchParams.set('pageToken', pageToken)
-
-  const res = await fetch(apiUrl.toString())
-  if (!res.ok) {
-    const err = await res.text()
-    console.error('[youtube/list] Search API error', res.status, err)
-    return Response.json({ items: [], error: `YouTube API ${res.status}` }, { status: 502 })
+  const page = await fetchFromYouTube(channelId, maxResults, q, pageToken, env.YOUTUBE_API_KEY, env)
+  if (!page) {
+    return Response.json({ items: [], error: 'YouTube API error' }, { status: 502 })
   }
 
-  const data = (await res.json()) as { items: SearchItem[]; nextPageToken?: string; prevPageToken?: string }
+  let items = page.items
 
-  let items = (data.items ?? [])
-    .filter((item) => item.id?.videoId)
-    .map((item) => ({
-      id: item.id.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      publishedAt: item.snippet.publishedAt,
-      thumbnail: item.snippet.thumbnails.high?.url ?? item.snippet.thumbnails.medium?.url ?? '',
-      channelTitle: item.snippet.channelTitle,
-    }))
-
-  // Public mode: only return published videos
+  // Public mode: filter to published videos only
   if (!isAdmin) {
     const publishedIds = await getPublishedIds(env)
     items = items.filter((v) => publishedIds.has(v.id))
   }
 
-  // Cache: short TTL so publish changes appear within 2 minutes
+  // No public HTTP caching — published filter must always reflect current KV state
   return Response.json(
     {
       items,
-      nextPageToken: isAdmin ? (data.nextPageToken ?? null) : null,
-      prevPageToken: isAdmin ? (data.prevPageToken ?? null) : null,
+      nextPageToken: page.nextPageToken,
+      prevPageToken: page.prevPageToken,
     },
-    { headers: { 'Cache-Control': 'public, max-age=120' } },
+    { headers: { 'Cache-Control': 'private, no-store' } },
   )
 }
