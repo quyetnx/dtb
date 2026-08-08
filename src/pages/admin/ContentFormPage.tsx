@@ -41,6 +41,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   const [coverUploading, setCoverUploading] = useState(false)
   const [docxImporting, setDocxImporting] = useState(false)
   const [contentFormat, setContentFormat] = useState<'markdown' | 'html'>('markdown')
+  const [description, setDescription] = useState('')
   const [imageInserting, setImageInserting] = useState(false)
   const docxInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -63,6 +64,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         setContent(data.content ?? '')
         setContentFormat((data.appProperties?.contentFormat as 'markdown' | 'html') ?? 'markdown')
         setCoverImageId(data.appProperties?.coverImageId ?? null)
+        setDescription((data.description as string) ?? '')
       })
       .catch((e: Error) => setLoadError(e.message || 'Không thể tải nội dung'))
       .finally(() => setLoading(false))
@@ -99,6 +101,40 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
     finally { setCoverUploading(false) }
   }
 
+  const uploadBase64Images = async (html: string): Promise<string> => {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const imgs = Array.from(doc.querySelectorAll<HTMLImageElement>('img[src^="data:"]'))
+    await Promise.all(imgs.map(async (img, i) => {
+      const src = img.src
+      const mimeType = src.match(/data:(image\/[^;]+)/)?.[1] ?? 'image/jpeg'
+      const ext = mimeType.split('/')[1] ?? 'jpg'
+      const base64 = src.split(',')[1]
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))
+      const blob = new Blob([bytes], { type: mimeType })
+      const fd = new FormData()
+      fd.append('file', new File([blob], `docx-image-${i + 1}.${ext}`, { type: mimeType }))
+      fd.append('name', `docx-image-${i + 1}.${ext}`)
+      try {
+        const res = await apiFetch('/api/drive/upload-image', { method: 'POST', body: fd })
+        const data = await res.json() as { id: string }
+        img.src = `/api/drive/image?id=${data.id}`
+        img.removeAttribute('style')
+      } catch { /* keep base64 if upload fails */ }
+    }))
+    return doc.body.innerHTML
+  }
+
+  const autoFillFromContent = (html: string, currentCoverId: string | null) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const text = (doc.body.textContent ?? '').replace(/\s+/g, ' ').trim()
+    const desc = text.length > 250 ? text.slice(0, 247) + '…' : text
+    setDescription(desc)
+    if (!currentCoverId) {
+      const match = html.match(/\/api\/drive\/image\?id=([^"'\s]+)/)
+      if (match) setCoverImageId(match[1])
+    }
+  }
+
   const handleDocxImport = async (file: File) => {
     setDocxImporting(true)
     try {
@@ -108,9 +144,13 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         { arrayBuffer },
         { convertImage: mammoth.images.dataUri },
       )
-      setContent(result.value.trim())
+      msg.loading({ content: `Đang upload ${result.value.match(/src="data:/g)?.length ?? 0} ảnh lên Drive...`, key: 'docx-upload' })
+      const html = await uploadBase64Images(result.value)
+      msg.success({ content: 'Đã nhập DOCX và upload ảnh xong', key: 'docx-upload' })
+      const trimmed = html.trim()
+      setContent(trimmed)
       setContentFormat('html')
-      msg.success('Đã nhập nội dung từ DOCX (giữ nguyên ảnh và định dạng)')
+      autoFillFromContent(trimmed, coverImageId)
     } catch { msg.error('Không thể đọc file DOCX') }
     finally {
       setDocxImporting(false)
@@ -166,14 +206,14 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         await apiFetch(`/api/drive/file?id=${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `${values.name}.md`, content, appProperties }),
+          body: JSON.stringify({ name: `${values.name}.md`, content, appProperties, description: description || undefined }),
         })
         msg.success('Đã lưu')
       } else {
         await apiFetch('/api/drive/file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: `${values.name}.md`, content, appProperties }),
+          body: JSON.stringify({ name: `${values.name}.md`, content, appProperties, description: description || undefined }),
         })
         msg.success('Đã tạo bài')
         navigate(backPath)
@@ -388,6 +428,43 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
                 </Form.Item>
               </div>
             )}
+
+            {/* Description */}
+            <div style={{ background: 'white', borderRadius: 8, padding: 16, marginBottom: 16, border: '1px solid #ebebeb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text strong style={{ fontSize: 13 }}>Mô tả ngắn</Text>
+                <Button
+                  size="small"
+                  type="link"
+                  style={{ padding: 0, fontSize: 12 }}
+                  disabled={!content}
+                  onClick={() => {
+                    if (contentFormat === 'html') {
+                      autoFillFromContent(content, coverImageId)
+                    } else {
+                      const stripped = content.replace(/#{1,6}\s/g, '').replace(/[*_~`[\]()]/g, '').replace(/\s+/g, ' ').trim()
+                      const desc = stripped.length > 250 ? stripped.slice(0, 247) + '…' : stripped
+                      setDescription(desc)
+                      if (!coverImageId) {
+                        const m = content.match(/!\[.*?\]\(\/api\/drive\/image\?id=([^)]+)\)/)
+                        if (m) setCoverImageId(m[1])
+                      }
+                    }
+                  }}
+                >
+                  Tự động
+                </Button>
+              </div>
+              <Input.TextArea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                placeholder="Mô tả ngắn hiển thị khi chia sẻ mạng xã hội..."
+                style={{ fontSize: 12 }}
+                maxLength={300}
+                showCount
+              />
+            </div>
 
             {/* Cover image */}
             <div style={{ background: 'white', borderRadius: 8, padding: 16, border: '1px solid #ebebeb' }}>

@@ -147,7 +147,12 @@ export default function ArticleDetailPage() {
 
   if (format === 'html') {
     fullHtml = content
-    hasRest = false // HTML content shown fully (DOCX structure already defined)
+    const blocks = Array.from(new DOMParser().parseFromString(content, 'text/html').body.children)
+    const previewCount = Math.max(MIN_PREVIEW_PARAGRAPHS, Math.ceil(blocks.length * PREVIEW_RATIO))
+    hasRest = blocks.length > previewCount + 1
+    const toHtml = (els: Element[]) => els.map((el) => el.outerHTML).join('')
+    previewHtml = toHtml(blocks.slice(0, previewCount))
+    restHtml = toHtml(blocks.slice(previewCount))
   } else {
     const paragraphs = content.split(/\n{2,}/).filter((s) => s.trim())
     const previewCount = Math.max(MIN_PREVIEW_PARAGRAPHS, Math.ceil(paragraphs.length * PREVIEW_RATIO))

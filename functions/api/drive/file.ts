@@ -95,6 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     content: string
     folder?: string
     appProperties?: Record<string, string>
+    description?: string
   }
 
   let token: string
@@ -112,6 +113,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       mimeType: 'text/plain',
       appProperties: body.appProperties ?? {},
     }
+    if (body.description) metadata.description = body.description
     if (withParent && folderId) metadata.parents = [folderId]
     const form = new FormData()
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
@@ -158,6 +160,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
     content?: string
     name?: string
     appProperties?: Record<string, string>
+    description?: string
   }
 
   let token: string
@@ -167,11 +170,11 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  if (body.name || body.appProperties) {
+  if (body.name || body.appProperties || body.description !== undefined) {
     const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: body.name, appProperties: body.appProperties }),
+      body: JSON.stringify({ name: body.name, appProperties: body.appProperties, description: body.description }),
     })
     if (!metaRes.ok) {
       const errText = await metaRes.text()
