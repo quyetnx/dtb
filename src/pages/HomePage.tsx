@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 
+const AUTHOR_PHOTO = 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
+
 const featuredArticles = [
   {
     slug: 'hoi-ky-tu-nguoi-can-bo-tu-chinh-tri',
@@ -9,7 +11,6 @@ const featuredArticles = [
       'Những trang hồi ký chân thực ghi lại ký ức về những năm tháng gian khổ, về tình đồng chí và lý tưởng cách mạng không bao giờ tắt.',
     date: '15 tháng 7, 2024',
     readTime: '12 phút đọc',
-    image: 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png',
   },
   {
     slug: 'bien-xanh-trong-ky-uc',
@@ -19,7 +20,6 @@ const featuredArticles = [
       'Một câu chuyện về tuổi thơ, về biển cả và những kỷ niệm không thể phai mờ theo năm tháng.',
     date: '3 tháng 6, 2024',
     readTime: '8 phút đọc',
-    image: 'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=800&q=80',
   },
   {
     slug: 'dat-que-huong',
@@ -29,7 +29,6 @@ const featuredArticles = [
       'Tùy bút về tình yêu quê hương, về mảnh đất miền Trung nghèo khó nhưng đầy nghĩa tình.',
     date: '20 tháng 5, 2024',
     readTime: '6 phút đọc',
-    image: 'https://images.unsplash.com/photo-1559827291-72ee739d0d9a?w=800&q=80',
   },
 ]
 
@@ -79,7 +78,7 @@ export default function HomePage() {
               <blockquote
                 className="mt-10 pl-5 text-body-lg italic"
                 style={{
-                  color: 'var(--color-charcoal-light)',
+                  color: 'var(--color-charcoal-muted)',
                   borderLeft: '3px solid var(--color-oxblood)',
                 }}
               >
@@ -98,7 +97,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   to="/nghe-thuat-van-hoa"
-                  className="inline-flex items-center gap-2 px-6 py-3 text-label transition-colors hover:bg-[var(--color-muted-border-light)]"
+                  className="inline-flex items-center gap-2 px-6 py-3 text-label transition-colors"
                   style={{
                     color: 'var(--color-charcoal)',
                     border: '1px solid var(--color-muted-border)',
@@ -114,19 +113,12 @@ export default function HomePage() {
             <div className="lg:col-span-5 order-1 lg:order-2">
               <div
                 className="relative overflow-hidden"
-                style={{ aspectRatio: '3/4', borderRadius: '2px' }}
+                style={{ aspectRatio: '3/4', borderRadius: '2px', backgroundColor: 'var(--color-paper-ivory-dark)' }}
               >
                 <img
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=600&q=80"
+                  src={AUTHOR_PHOTO}
                   alt="Dương Thanh Biểu"
-                  className="w-full h-full object-cover"
-                />
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      'linear-gradient(to top, rgba(45,45,45,0.4) 0%, transparent 50%)',
-                  }}
+                  className="w-full h-full object-cover object-top"
                 />
               </div>
             </div>
@@ -134,10 +126,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Literature */}
+      {/* Featured Literature — text-only cards */}
       <section className="section-gap">
         <div className="container-main">
-          {/* Section header */}
           <div className="flex items-end justify-between mb-12">
             <div>
               <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
@@ -157,48 +148,41 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Articles grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
             {featuredArticles.map((article, i) => (
               <Link
                 key={article.slug}
                 to={`/van-tho/${article.slug}`}
-                className="group block card-hover"
+                className="group block card-hover p-8"
+                style={{
+                  borderTop: '1px solid var(--color-muted-border)',
+                  borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
+                }}
               >
-                <div className="overflow-hidden" style={{ borderRadius: '2px', aspectRatio: '4/3' }}>
-                  <img
-                    src={article.image}
-                    alt={article.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div className="mt-4">
-                  <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
-                    {article.category}
-                  </p>
-                  <h3
-                    className="text-display-sm mt-2 transition-colors group-hover:text-[var(--color-oxblood)]"
-                    style={{ color: 'var(--color-charcoal)' }}
-                  >
-                    {article.title}
-                  </h3>
-                  {i === 0 && (
-                    <p className="text-body-md mt-2" style={{ color: 'var(--color-charcoal-muted)' }}>
-                      {article.excerpt}
-                    </p>
-                  )}
-                  <div
-                    className="flex items-center gap-3 mt-3 text-label"
-                    style={{ color: 'var(--color-charcoal-muted)' }}
-                  >
-                    <span>{article.date}</span>
-                    <span>·</span>
-                    <span>{article.readTime}</span>
-                  </div>
+                <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
+                  {article.category}
+                </p>
+                <h3
+                  className="text-display-sm mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                  style={{ color: 'var(--color-charcoal)' }}
+                >
+                  {article.title}
+                </h3>
+                <p className="text-body-md mt-3" style={{ color: 'var(--color-charcoal-muted)' }}>
+                  {article.excerpt}
+                </p>
+                <div
+                  className="flex items-center gap-3 mt-6 text-label"
+                  style={{ color: 'var(--color-charcoal-muted)' }}
+                >
+                  <span>{article.date}</span>
+                  <span>·</span>
+                  <span>{article.readTime}</span>
                 </div>
               </Link>
             ))}
           </div>
+          <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
         </div>
       </section>
 
@@ -211,7 +195,6 @@ export default function HomePage() {
       <section className="section-gap">
         <div className="container-main">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Section header */}
             <div className="lg:col-span-3">
               <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
                 Thi ca
@@ -232,15 +215,14 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Poems list */}
             <div className="lg:col-span-9">
-              <div className="flex flex-col divide-y" style={{ '--tw-divide-opacity': 1, borderColor: 'var(--color-muted-border)' } as React.CSSProperties}>
+              <div className="flex flex-col" style={{ borderTop: '1px solid var(--color-muted-border)' }}>
                 {featuredPoems.map((poem) => (
                   <Link
                     key={poem.slug}
                     to={`/tho/${poem.slug}`}
-                    className="group py-8 first:pt-0 last:pb-0 flex gap-8 items-start"
-                    style={{ borderColor: 'var(--color-muted-border)' }}
+                    className="group py-8 flex gap-8 items-start"
+                    style={{ borderBottom: '1px solid var(--color-muted-border)' }}
                   >
                     <div className="flex-1">
                       <h3
@@ -250,7 +232,7 @@ export default function HomePage() {
                         {poem.title}
                       </h3>
                       <p
-                        className="poem-content text-left mt-3 text-sm"
+                        className="poem-content mt-3 text-sm"
                         style={{ textAlign: 'left', fontSize: '1rem' }}
                       >
                         {poem.preview}

@@ -7,6 +7,10 @@ import LiteraturePage from './pages/LiteraturePage'
 import ArticleDetailPage from './pages/ArticleDetailPage'
 import PoemDetailPage from './pages/PoemDetailPage'
 import ArtsCulturePage from './pages/ArtsCulturePage'
+import ComingSoonPage from './pages/ComingSoonPage'
+
+// Đặt thành true khi sẵn sàng mở public
+const SITE_PUBLIC = false
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const AdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
@@ -91,20 +95,24 @@ export default function App() {
         <Route
           path="*"
           element={
-            <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-paper-ivory)' }}>
-              <Navbar />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/van-tho" element={<LiteraturePage />} />
-                  <Route path="/van-tho/:slug" element={<ArticleDetailPage />} />
-                  <Route path="/tho/:slug" element={<PoemDetailPage />} />
-                  <Route path="/nghe-thuat-van-hoa" element={<ArtsCulturePage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
+            SITE_PUBLIC ? (
+              <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-paper-ivory)' }}>
+                <Navbar />
+                <main className="flex-1">
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/van-tho" element={<LiteraturePage />} />
+                    <Route path="/van-tho/:slug" element={<ArticleDetailPage />} />
+                    <Route path="/tho/:slug" element={<PoemDetailPage />} />
+                    <Route path="/nghe-thuat-van-hoa" element={<ArtsCulturePage />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            ) : (
+              <ComingSoonPage />
+            )
           }
         />
       </Routes>
