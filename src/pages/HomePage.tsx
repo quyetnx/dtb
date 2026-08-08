@@ -10,13 +10,25 @@ interface FileItem {
   appProperties?: { type?: string; category?: string; status?: string }
 }
 
+interface VideoItem {
+  id: string
+  title: string
+  publishedAt: string
+  thumbnail: string
+}
+
 export default function HomePage() {
   const [files, setFiles] = useState<FileItem[]>([])
+  const [videos, setVideos] = useState<VideoItem[]>([])
 
   useEffect(() => {
     fetch('/api/drive/list')
       .then((r) => r.json())
       .then((d) => setFiles(d.files ?? []))
+      .catch(() => {})
+    fetch('/api/youtube/list?maxResults=3')
+      .then((r) => r.json())
+      .then((d) => setVideos(d.items ?? []))
       .catch(() => {})
   }, [])
 
@@ -211,6 +223,67 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* YouTube section */}
+      {videos.length > 0 && (
+        <section className="section-gap" style={{ borderTop: '1px solid var(--color-muted-border)' }}>
+          <div className="container-main">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
+                  Kênh YouTube
+                </p>
+                <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>
+                  Video gần đây
+                </h2>
+              </div>
+              <Link
+                to="/video"
+                className="hidden md:inline-flex items-center gap-1 text-label transition-colors hover:text-[var(--color-charcoal)]"
+                style={{ color: 'var(--color-charcoal-muted)' }}
+              >
+                Xem tất cả
+                <span className="material-symbols-outlined text-[1em]">arrow_forward</span>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+              {videos.map((v) => (
+                <Link key={v.id} to="/video" className="group block">
+                  <div style={{ position: 'relative', aspectRatio: '16/9', borderRadius: '2px', overflow: 'hidden', backgroundColor: '#111' }}>
+                    <img
+                      src={v.thumbnail}
+                      alt={v.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.2s' }}
+                      className="group-hover:opacity-80"
+                    />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <span className="material-symbols-outlined" style={{ color: '#c00', fontSize: 22, marginLeft: 2 }}>play_arrow</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="text-display-sm mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                    style={{ color: 'var(--color-charcoal)', lineHeight: 1.4 }}>
+                    {v.title}
+                  </h3>
+                  <p className="text-label mt-1" style={{ color: 'var(--color-charcoal-muted)' }}>
+                    {new Date(v.publishedAt).toLocaleDateString('vi-VN')}
+                  </p>
+                </Link>
+              ))}
             </div>
           </div>
         </section>

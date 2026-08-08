@@ -10,6 +10,7 @@ import {
   DashboardOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons'
 
 const { Sider, Header, Content } = Layout
@@ -61,6 +62,7 @@ export default function AdminLayout() {
     { key: '/admin/tho', icon: <ReadOutlined />, label: <Link to="/admin/tho">Thơ</Link> },
     { key: '/admin/nghe-thuat', icon: <BookOutlined />, label: <Link to="/admin/nghe-thuat">Nghệ thuật & VH</Link> },
     { key: '/admin/hinh-anh', icon: <PictureOutlined />, label: <Link to="/admin/hinh-anh">Hình ảnh</Link> },
+    { key: '/admin/video', icon: <PlayCircleOutlined />, label: <Link to="/admin/video">Video YouTube</Link> },
   ]
 
   const selectedKey = menuItems

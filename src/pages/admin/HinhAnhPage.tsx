@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button, Card, Col, Row, Typography, message, Popconfirm, Spin, Empty, Upload } from 'antd'
-import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
+import { Button, Card, Col, Row, Typography, message, Popconfirm, Spin, Empty, Upload, Tooltip } from 'antd'
+import { DeleteOutlined, UploadOutlined, CopyOutlined } from '@ant-design/icons'
 
 const { Title, Text } = Typography
 
@@ -18,7 +18,7 @@ export default function HinhAnhPage() {
 
   const load = () => {
     setLoading(true)
-    fetch('/api/drive/list?type=image')
+    fetch('/api/drive/list?type=image&admin=1')
       .then((r) => r.json())
       .then((data) => setImages(data.files ?? []))
       .catch(() => msg.error('Không thể tải hình ảnh'))
@@ -54,10 +54,16 @@ export default function HinhAnhPage() {
     load()
   }
 
+  const copyUrl = (id: string) => {
+    const url = `/api/drive/image?id=${id}`
+    navigator.clipboard.writeText(url)
+    msg.success('Đã copy URL ảnh')
+  }
+
   return (
     <div>
       {ctxHolder}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Title level={4} style={{ margin: 0 }}>Hình ảnh</Title>
         <Upload
           showUploadList={false}
@@ -74,6 +80,9 @@ export default function HinhAnhPage() {
           </Button>
         </Upload>
       </div>
+      <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 20 }}>
+        Copy URL ảnh để nhúng vào bài viết: <code>![mô tả](/api/drive/image?id=...)</code>
+      </Text>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
@@ -88,13 +97,16 @@ export default function HinhAnhPage() {
                 cover={
                   <div style={{ height: 120, overflow: 'hidden', background: '#f0f0f0', position: 'relative' }}>
                     <img
-                      src={`/api/drive/file?id=${img.id}`}
+                      src={`/api/drive/image?id=${img.id}`}
                       alt={img.name}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   </div>
                 }
                 actions={[
+                  <Tooltip key="copy" title="Copy URL để dùng trong bài viết">
+                    <Button type="text" size="small" icon={<CopyOutlined />} onClick={() => copyUrl(img.id)} />
+                  </Tooltip>,
                   <Popconfirm
                     key="del"
                     title="Xóa hình ảnh này?"

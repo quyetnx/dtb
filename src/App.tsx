@@ -7,6 +7,7 @@ import LiteraturePage from './pages/LiteraturePage'
 import ArticleDetailPage from './pages/ArticleDetailPage'
 import PoemDetailPage from './pages/PoemDetailPage'
 import ArtsCulturePage from './pages/ArtsCulturePage'
+import VideoPage from './pages/VideoPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
@@ -16,6 +17,7 @@ const VanXuoiPage = lazy(() => import('./pages/admin/VanXuoiPage'))
 const ThoPage = lazy(() => import('./pages/admin/ThoPage'))
 const NgheThuatPage = lazy(() => import('./pages/admin/NgheThuatPage'))
 const HinhAnhPage = lazy(() => import('./pages/admin/HinhAnhPage'))
+const AdminVideoPage = lazy(() => import('./pages/admin/VideoPage'))
 
 function AdminSpinner() {
   return (
@@ -97,6 +99,14 @@ export default function App() {
               </Suspense>
             }
           />
+          <Route
+            path="video"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <AdminVideoPage />
+              </Suspense>
+            }
+          />
         </Route>
 
         {/* Public routes */}
@@ -113,6 +123,7 @@ export default function App() {
                     <Route path="/van-tho/:slug" element={<ArticleDetailPage />} />
                     <Route path="/tho/:slug" element={<PoemDetailPage />} />
                     <Route path="/nghe-thuat-van-hoa" element={<ArtsCulturePage />} />
+                    <Route path="/video" element={<VideoPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

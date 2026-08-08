@@ -1,6 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { marked } from 'marked'
+import { marked, type TokenizerAndRendererExtension } from 'marked'
+
+// Custom extension: [youtube:videoId] → embedded iframe
+const youtubeExtension: TokenizerAndRendererExtension = {
+  name: 'youtube',
+  level: 'block',
+  start: (src: string) => src.indexOf('[youtube:'),
+  tokenizer(src: string) {
+    const match = src.match(/^\[youtube:([A-Za-z0-9_-]{11})\]/)
+    if (match) return { type: 'youtube', raw: match[0], videoId: match[1] }
+  },
+  renderer(token) {
+    return `<div class="youtube-embed" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:2px;margin:2rem 0">
+      <iframe src="https://www.youtube.com/embed/${token.videoId}"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen></iframe>
+    </div>`
+  },
+}
+
+marked.use({ extensions: [youtubeExtension] })
 
 interface FileMeta {
   id: string
