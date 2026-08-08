@@ -10,6 +10,7 @@ import {
   onRequestDelete as handleDriveFileDelete,
 } from './api/drive/file'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
+import { onRequestGet as handleDriveTest } from './api/drive/test'
 
 interface Env {
   ASSETS: Fetcher
@@ -59,6 +60,7 @@ export default {
         return Response.json({ error: 'Unauthorized' }, { status: 401 })
       }
 
+      if (path === '/api/drive/test' && method === 'GET') return handleDriveTest(makeCtx(request, env))
       if (path === '/api/drive/list' && method === 'GET') return handleDriveList(makeCtx(request, env))
       if (path === '/api/drive/file') {
         if (method === 'GET') return handleDriveFileGet(makeCtx(request, env))
