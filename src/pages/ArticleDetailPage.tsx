@@ -16,7 +16,7 @@ const articles: Record<string, {
     subtitle: 'Những trang ký ức về một thời không thể quên',
     date: '15 tháng 7, 2024',
     readTime: '12 phút đọc',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=80',
+    image: 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png',
     content: [
       'Những năm tháng trong tù là những năm tháng tôi không bao giờ có thể quên. Không phải vì đau khổ, dù đau khổ có đó, mà vì chính trong những năm tháng ấy, tôi đã hiểu được điều gì là thực sự quan trọng trong cuộc đời.',
       'Tôi bị bắt vào một buổi sáng tháng Ba, khi sương mù còn chưa tan hết trên những con đường làng quê. Họ đến mà không báo trước, như tất cả những điều bất ngờ trong cuộc đời — luôn đến khi ta ít ngờ nhất.',
@@ -66,7 +66,7 @@ const articles: Record<string, {
         slug: 'hoi-ky-tu-nguoi-can-bo-tu-chinh-tri',
         title: 'Hồi ký từ người cán bộ tù chính trị',
         category: 'Hồi ký',
-        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80',
+        image: 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png',
       },
       {
         slug: 'dat-que-huong',

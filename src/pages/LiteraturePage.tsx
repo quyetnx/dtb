@@ -12,7 +12,7 @@ const works = [
     excerpt: 'Những trang hồi ký chân thực ghi lại ký ức về những năm tháng gian khổ, về tình đồng chí và lý tưởng cách mạng không bao giờ tắt.',
     date: '15 tháng 7, 2024',
     readTime: '12 phút đọc',
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80',
+    image: 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png',
     featured: true,
   },
   {

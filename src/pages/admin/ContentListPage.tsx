@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Button, Table, Typography, Space, Tag, Modal, Form,
-  Input, message, Popconfirm, Spin,
+  Input, message, Popconfirm, Spin, Switch, Tooltip,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons'
 import type { TableColumnsType } from 'antd'
 
 const { Title } = Typography
@@ -13,7 +13,7 @@ interface FileItem {
   id: string
   name: string
   modifiedTime: string
-  appProperties?: { type?: string; category?: string; status?: string }
+  appProperties?: { type?: string; category?: string; status?: 'published' | 'draft' }
 }
 
 interface ContentListPageProps {
@@ -40,7 +40,7 @@ export default function ContentListPage({ title, contentType, categoryOptions }:
 
   const load = () => {
     setLoading(true)
-    fetch('/api/drive/list')
+    fetch('/api/drive/list?admin=1')
       .then((r) => r.json())
       .then((data) => {
         const all: FileItem[] = data.files ?? []
@@ -48,6 +48,17 @@ export default function ContentListPage({ title, contentType, categoryOptions }:
       })
       .catch(() => msg.error('Không thể tải danh sách'))
       .finally(() => setLoading(false))
+  }
+
+  const toggleStatus = async (file: FileItem) => {
+    const next = file.appProperties?.status === 'published' ? 'draft' : 'published'
+    await fetch(`/api/drive/file?id=${file.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appProperties: { ...file.appProperties, status: next } }),
+    })
+    msg.success(next === 'published' ? 'Đã công bố' : 'Đã đặt nháp')
+    load()
   }
 
   useEffect(() => { load() }, [contentType]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -81,6 +92,7 @@ export default function ContentListPage({ title, contentType, categoryOptions }:
       content: editContent,
       appProperties: {
         type: contentType,
+        status: editing?.appProperties?.status ?? 'draft',
         ...(values.category ? { category: values.category } : {}),
       },
     }
@@ -134,16 +146,40 @@ export default function ContentListPage({ title, contentType, categoryOptions }:
         }]
       : []),
     {
+      title: 'Trạng thái',
+      key: 'status',
+      width: 130,
+      render: (_: unknown, record: FileItem) => {
+        const published = record.appProperties?.status === 'published'
+        return (
+          <Tooltip title={published ? 'Click để đặt nháp' : 'Click để công bố'}>
+            <Space size={6}>
+              <Switch
+                size="small"
+                checked={published}
+                onChange={() => toggleStatus(record)}
+                checkedChildren={<UnlockOutlined />}
+                unCheckedChildren={<LockOutlined />}
+              />
+              <Tag color={published ? 'green' : 'default'} style={{ margin: 0 }}>
+                {published ? 'Công bố' : 'Nháp'}
+              </Tag>
+            </Space>
+          </Tooltip>
+        )
+      },
+    },
+    {
       title: 'Cập nhật',
       dataIndex: 'modifiedTime',
       key: 'modifiedTime',
-      width: 140,
+      width: 130,
       render: (t: string) => new Date(t).toLocaleDateString('vi-VN'),
     },
     {
       title: '',
       key: 'actions',
-      width: 100,
+      width: 90,
       render: (_: unknown, record: FileItem) => (
         <Space>
           <Button

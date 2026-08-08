@@ -73,6 +73,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const token = await getServiceAccountToken(env.GOOGLE_SERVICE_ACCOUNT_KEY)
 
+  const isAdmin = url.searchParams.get('admin') === '1'
   const mimeFilter = type === 'image'
     ? "mimeType contains 'image/'"
     : "mimeType='text/plain' or mimeType='text/markdown'"
@@ -91,6 +92,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive API error' }, { status: 500 })
   }
 
-  const data = await res.json()
+  const data = await res.json() as { files: { appProperties?: { status?: string } }[] }
+
+  // Public API: only return published content. Admin API: return all.
+  if (!isAdmin) {
+    data.files = (data.files ?? []).filter(
+      (f) => f.appProperties?.status === 'published'
+    )
+  }
+
   return Response.json(data)
 }
