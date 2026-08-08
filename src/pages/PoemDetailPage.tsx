@@ -31,7 +31,8 @@ export default function PoemDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    fetch(`/api/drive/file?id=${id}`)
+    const ct = (window as unknown as { __ct?: string }).__ct ?? ''
+    fetch(`/api/drive/file?id=${id}`, { headers: ct ? { 'X-Content-Token': ct } : {} })
       .then((r) => {
         if (!r.ok) { setNotFound(true); return null }
         return r.json()

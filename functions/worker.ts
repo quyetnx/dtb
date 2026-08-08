@@ -54,6 +54,35 @@ async function isAuthenticated(request: Request, env: Env): Promise<boolean> {
   return !!data
 }
 
+// ── Content token (HMAC-SHA256, rotates hourly) ────────────────────────────
+
+async function hmacToken(message: string, secret: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  )
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message))
+  return btoa(String.fromCharCode(...new Uint8Array(sig)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+async function generateContentToken(fileId: string, secret: string): Promise<string> {
+  const hour = Math.floor(Date.now() / 3600000)
+  return hmacToken(`${fileId}:${hour}`, secret)
+}
+
+async function validateContentToken(fileId: string, secret: string, token: string): Promise<boolean> {
+  const hour = Math.floor(Date.now() / 3600000)
+  for (const h of [hour, hour - 1]) {
+    const expected = await hmacToken(`${fileId}:${h}`, secret)
+    if (expected === token) return true
+  }
+  return false
+}
+
 // ── OG meta injection for social bots ──────────────────────────────────────
 
 function escHtml(s: string) {
@@ -97,6 +126,10 @@ async function injectOGMeta(
   const meta = await getOGMeta(fileId, env)
   if (!meta) return htmlRes
 
+  const contentToken = env.SESSION_SECRET
+    ? await generateContentToken(fileId, env.SESSION_SECRET)
+    : ''
+
   const title = (meta.name ?? '').replace(/\.md$/, '')
   const desc = meta.description
     ?? (isPoem
@@ -123,7 +156,8 @@ async function injectOGMeta(
   <meta name="twitter:image" content="${escHtml(imageUrl)}">`.trim()
 
   let html = await htmlRes.text()
-  html = html.replace(/<\/head>/, `  ${ogBlock}\n  </head>`)
+  const tokenScript = contentToken ? `<script>window.__ct="${contentToken}"</script>` : ''
+  html = html.replace(/<\/head>/, `  ${ogBlock}\n  ${tokenScript}\n  </head>`)
 
   const headers = new Headers(htmlRes.headers)
   headers.set('Content-Type', 'text/html; charset=utf-8')
@@ -197,7 +231,17 @@ export default {
     if (path === '/api/drive/list' && method === 'GET' && !url.searchParams.get('admin')) {
       return handleDriveList(makeCtx(request, env))
     }
-    if (path === '/api/drive/file' && method === 'GET') return handleDriveFileGet(makeCtx(request, env))
+    if (path === '/api/drive/file' && method === 'GET') {
+      const fileId = url.searchParams.get('id') ?? ''
+      const token = request.headers.get('X-Content-Token') ?? ''
+      const tokenOk = env.SESSION_SECRET
+        ? await validateContentToken(fileId, env.SESSION_SECRET, token)
+        : true
+      if (tokenOk) return handleDriveFileGet(makeCtx(request, env))
+      // Fall through — auth check below will allow admin sessions
+      if (await isAuthenticated(request, env)) return handleDriveFileGet(makeCtx(request, env))
+      return new Response('Forbidden', { status: 403 })
+    }
     if (path === '/api/drive/image' && method === 'GET') return handleDriveImage(makeCtx(request, env))
     if (path === '/api/drive/thumb' && method === 'GET') return handleDriveThumb(request, env)
 
