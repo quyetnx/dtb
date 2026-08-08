@@ -1,4 +1,5 @@
 import type { PagesFunction } from '@cloudflare/workers-types'
+import mammoth from 'mammoth'
 import { getDriveToken } from './_token'
 import { getDriveFolder } from './_folder'
 import { cleanGoogleDocsHtml } from './_htmlClean'
@@ -46,6 +47,28 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     }
     const rawHtml = await exportRes.text()
     const content = cleanGoogleDocsHtml(rawHtml)
+    return Response.json({ content, format: 'html', ...meta })
+  }
+
+  // DOCX uploaded to Drive → use mammoth to convert to HTML with embedded images
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    const docxRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (!docxRes.ok) {
+      const detail = await docxRes.text()
+      return Response.json({ error: 'Không thể tải file DOCX', detail }, { status: 500 })
+    }
+    const arrayBuffer = await docxRes.arrayBuffer()
+    const result = await mammoth.convertToHtml(
+      { arrayBuffer },
+      { convertImage: mammoth.images.dataUri },
+    )
+    if (result.messages.length) {
+      console.warn('[drive/file] mammoth warnings', result.messages.slice(0, 3))
+    }
+    const content = cleanGoogleDocsHtml(result.value)
     return Response.json({ content, format: 'html', ...meta })
   }
 
