@@ -15,6 +15,7 @@ import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusP
 import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } from './api/site/bio'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleYoutubeVideo } from './api/youtube/video'
+import { onRequestGet as handleYoutubePublishedGet, onRequestPost as handleYoutubePublishedPost } from './api/youtube/published'
 import { onRequestGet as handleDriveStatus } from './api/drive/status'
 import { onRequestPost as handleDriveDisconnect } from './api/drive/disconnect'
 import { onRequestGet as handleDriveFolders } from './api/drive/folders'
@@ -223,6 +224,8 @@ export default {
     if (path === '/api/drive/upload-image' && method === 'POST') return handleUploadImage(makeCtx(request, env))
     if (path === '/api/site/status' && method === 'POST') return handleSiteStatusPost(makeCtx(request, env))
     if (path === '/api/site/bio' && method === 'POST') return handleSiteBioPost(makeCtx(request, env))
+    if (path === '/api/youtube/published' && method === 'GET') return handleYoutubePublishedGet(makeCtx(request, env))
+    if (path === '/api/youtube/published' && method === 'POST') return handleYoutubePublishedPost(makeCtx(request, env))
 
     return new Response('Not Found', { status: 404 })
   },

@@ -3,6 +3,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 interface Env {
   YOUTUBE_API_KEY: string
   YOUTUBE_CHANNEL_ID: string
+  SESSIONS: KVNamespace
 }
 
 interface SearchItem {
@@ -31,10 +32,16 @@ async function resolveChannelId(handle: string, apiKey: string): Promise<string>
   return channelId
 }
 
-// GET /api/youtube/list — popular videos from the channel
-// Default: sorted by viewCount (most popular first), type=video only
-// With ?q=keyword: sorted by relevance
-// Supports ?maxResults=N&pageToken=...
+async function getPublishedIds(env: Env): Promise<Set<string>> {
+  const data = await env.SESSIONS.get('youtube:published', { type: 'json' }) as { ids: string[] } | null
+  return new Set(data?.ids ?? [])
+}
+
+// GET /api/youtube/list
+// Default: popular videos (order=viewCount, type=video), filtered to published only
+// ?admin=1: all videos, no filter (auth enforced by worker)
+// ?q=keyword: relevance order
+// ?maxResults=N&pageToken=...
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (!env.YOUTUBE_API_KEY || !env.YOUTUBE_CHANNEL_ID) {
     return Response.json({ items: [], error: 'YOUTUBE_API_KEY or YOUTUBE_CHANNEL_ID not configured' })
@@ -44,6 +51,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const maxResults = url.searchParams.get('maxResults') ?? '12'
   const q = url.searchParams.get('q') ?? ''
   const pageToken = url.searchParams.get('pageToken') ?? ''
+  const isAdmin = url.searchParams.get('admin') === '1'
 
   let channelId: string
   try {
@@ -54,12 +62,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ items: [], error: msg }, { status: 502 })
   }
 
+  // For admin: fetch more to show full catalogue
+  const fetchMax = isAdmin ? String(Math.min(50, parseInt(maxResults) * 3)) : maxResults
+
   const apiUrl = new URL('https://www.googleapis.com/youtube/v3/search')
   apiUrl.searchParams.set('part', 'snippet')
   apiUrl.searchParams.set('channelId', channelId)
   apiUrl.searchParams.set('type', 'video')
   apiUrl.searchParams.set('order', q ? 'relevance' : 'viewCount')
-  apiUrl.searchParams.set('maxResults', maxResults)
+  apiUrl.searchParams.set('maxResults', fetchMax)
   apiUrl.searchParams.set('key', env.YOUTUBE_API_KEY)
   if (q) apiUrl.searchParams.set('q', q)
   if (pageToken) apiUrl.searchParams.set('pageToken', pageToken)
@@ -72,7 +83,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const data = (await res.json()) as { items: SearchItem[]; nextPageToken?: string; prevPageToken?: string }
-  const items = (data.items ?? [])
+
+  let items = (data.items ?? [])
     .filter((item) => item.id?.videoId)
     .map((item) => ({
       id: item.id.videoId,
@@ -83,10 +95,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       channelTitle: item.snippet.channelTitle,
     }))
 
-  // Cache popular listing longer than search results
-  const cacheAge = q ? 900 : 3600
+  // Public mode: only return published videos
+  if (!isAdmin) {
+    const publishedIds = await getPublishedIds(env)
+    items = items.filter((v) => publishedIds.has(v.id))
+  }
+
+  // Cache: short TTL so publish changes appear within 2 minutes
   return Response.json(
-    { items, nextPageToken: data.nextPageToken ?? null, prevPageToken: data.prevPageToken ?? null },
-    { headers: { 'Cache-Control': `public, max-age=${cacheAge}` } },
+    {
+      items,
+      nextPageToken: isAdmin ? (data.nextPageToken ?? null) : null,
+      prevPageToken: isAdmin ? (data.prevPageToken ?? null) : null,
+    },
+    { headers: { 'Cache-Control': 'public, max-age=120' } },
   )
 }
