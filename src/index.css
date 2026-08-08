@@ -164,6 +164,34 @@
     text-align: center;
   }
 
+  .prose-content p {
+    font-size: 1.125rem;
+    line-height: 1.9;
+    color: var(--color-charcoal);
+    margin-bottom: 1.5rem;
+  }
+
+  .prose-content h1, .prose-content h2, .prose-content h3 {
+    font-family: var(--font-display);
+    color: var(--color-charcoal);
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .prose-content h2 { font-size: 1.5rem; }
+  .prose-content h3 { font-size: 1.25rem; }
+
+  .prose-content blockquote {
+    border-left: 3px solid var(--color-oxblood);
+    padding-left: 1.25rem;
+    font-style: italic;
+    color: var(--color-charcoal-muted);
+    margin: 1.5rem 0;
+  }
+
+  .prose-content strong { font-weight: 600; }
+  .prose-content em { font-style: italic; }
+
   .card-hover {
     transition: box-shadow 0.2s ease, transform 0.2s ease;
   }

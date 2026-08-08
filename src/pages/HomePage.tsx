@@ -1,66 +1,34 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const AUTHOR_PHOTO = 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
 
-const featuredArticles = [
-  {
-    slug: 'hoi-ky-tu-nguoi-can-bo-tu-chinh-tri',
-    category: 'Hồi ký',
-    title: 'Hồi ký từ người cán bộ tù chính trị',
-    excerpt:
-      'Những trang hồi ký chân thực ghi lại ký ức về những năm tháng gian khổ, về tình đồng chí và lý tưởng cách mạng không bao giờ tắt.',
-    date: '15 tháng 7, 2024',
-    readTime: '12 phút đọc',
-  },
-  {
-    slug: 'bien-xanh-trong-ky-uc',
-    category: 'Truyện ngắn',
-    title: 'Biển xanh trong ký ức',
-    excerpt:
-      'Một câu chuyện về tuổi thơ, về biển cả và những kỷ niệm không thể phai mờ theo năm tháng.',
-    date: '3 tháng 6, 2024',
-    readTime: '8 phút đọc',
-  },
-  {
-    slug: 'dat-que-huong',
-    category: 'Tùy bút',
-    title: 'Đất quê hương',
-    excerpt:
-      'Tùy bút về tình yêu quê hương, về mảnh đất miền Trung nghèo khó nhưng đầy nghĩa tình.',
-    date: '20 tháng 5, 2024',
-    readTime: '6 phút đọc',
-  },
-]
-
-const featuredPoems = [
-  {
-    slug: 'que-huong-chieu-ta',
-    title: 'Quê hương chiều tà',
-    preview: 'Chiều về trên mái ngói rêu phong\nKhói lam tỏa nhẹ qua vườn cũ...',
-    date: 'Tháng 7, 2024',
-  },
-  {
-    slug: 'nho-me',
-    title: 'Nhớ mẹ',
-    preview: 'Con về tìm lại bóng người xưa\nDấu chân mẹ in trên sân nhà...',
-    date: 'Tháng 6, 2024',
-  },
-  {
-    slug: 'song-que',
-    title: 'Sông quê',
-    preview: 'Dòng sông tuổi thơ vẫn chảy hoài\nĐem theo ký ức những ngày dài...',
-    date: 'Tháng 5, 2024',
-  },
-]
+interface FileItem {
+  id: string
+  name: string
+  modifiedTime: string
+  appProperties?: { type?: string; category?: string; status?: string }
+}
 
 export default function HomePage() {
+  const [files, setFiles] = useState<FileItem[]>([])
+
+  useEffect(() => {
+    fetch('/api/drive/list')
+      .then((r) => r.json())
+      .then((d) => setFiles(d.files ?? []))
+      .catch(() => {})
+  }, [])
+
+  const vanXuoi = files.filter((f) => f.appProperties?.type === 'van-xuoi').slice(0, 3)
+  const tho = files.filter((f) => f.appProperties?.type === 'tho').slice(0, 3)
+
   return (
     <>
       {/* Hero */}
       <section className="section-gap" style={{ borderBottom: '1px solid var(--color-muted-border)' }}>
         <div className="container-main">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-            {/* Text */}
             <div className="lg:col-span-7 order-2 lg:order-1">
               <p className="text-label mb-6" style={{ color: 'var(--color-oxblood)' }}>
                 Nhà văn · Nhà thơ · Hồi ký
@@ -109,7 +77,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Portrait */}
             <div className="lg:col-span-5 order-1 lg:order-2">
               <div
                 className="relative overflow-hidden"
@@ -126,134 +93,128 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Literature — text-only cards */}
-      <section className="section-gap">
-        <div className="container-main">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
-                Tác phẩm nổi bật
-              </p>
-              <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>
-                Văn xuôi
-              </h2>
-            </div>
-            <Link
-              to="/van-tho"
-              className="hidden md:inline-flex items-center gap-1 text-label transition-colors hover:text-[var(--color-charcoal)]"
-              style={{ color: 'var(--color-charcoal-muted)' }}
-            >
-              Xem tất cả
-              <span className="material-symbols-outlined text-[1em]">arrow_forward</span>
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-            {featuredArticles.map((article, i) => (
-              <Link
-                key={article.slug}
-                to={`/van-tho/${article.slug}`}
-                className="group block card-hover p-8"
-                style={{
-                  borderTop: '1px solid var(--color-muted-border)',
-                  borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
-                }}
-              >
-                <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
-                  {article.category}
+      {/* Featured Literature */}
+      {vanXuoi.length > 0 && (
+        <section className="section-gap">
+          <div className="container-main">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
+                  Tác phẩm nổi bật
                 </p>
-                <h3
-                  className="text-display-sm mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
-                  style={{ color: 'var(--color-charcoal)' }}
-                >
-                  {article.title}
-                </h3>
-                <p className="text-body-md mt-3" style={{ color: 'var(--color-charcoal-muted)' }}>
-                  {article.excerpt}
-                </p>
-                <div
-                  className="flex items-center gap-3 mt-6 text-label"
-                  style={{ color: 'var(--color-charcoal-muted)' }}
-                >
-                  <span>{article.date}</span>
-                  <span>·</span>
-                  <span>{article.readTime}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-          <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="container-main">
-        <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
-      </div>
-
-      {/* Featured Poems */}
-      <section className="section-gap">
-        <div className="container-main">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            <div className="lg:col-span-3">
-              <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
-                Thi ca
-              </p>
-              <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>
-                Thơ gần đây
-              </h2>
-              <p className="text-body-md mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
-                Những vần thơ ghi lại cảm xúc, kỷ niệm và suy ngẫm về cuộc đời.
-              </p>
+                <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>
+                  Văn xuôi
+                </h2>
+              </div>
               <Link
                 to="/van-tho"
-                className="inline-flex items-center gap-1 mt-6 text-label transition-colors hover:text-[var(--color-charcoal)]"
-                style={{ color: 'var(--color-oxblood)' }}
+                className="hidden md:inline-flex items-center gap-1 text-label transition-colors hover:text-[var(--color-charcoal)]"
+                style={{ color: 'var(--color-charcoal-muted)' }}
               >
-                Xem tất cả thơ
+                Xem tất cả
                 <span className="material-symbols-outlined text-[1em]">arrow_forward</span>
               </Link>
             </div>
 
-            <div className="lg:col-span-9">
-              <div className="flex flex-col" style={{ borderTop: '1px solid var(--color-muted-border)' }}>
-                {featuredPoems.map((poem) => (
-                  <Link
-                    key={poem.slug}
-                    to={`/tho/${poem.slug}`}
-                    className="group py-8 flex gap-8 items-start"
-                    style={{ borderBottom: '1px solid var(--color-muted-border)' }}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+              {vanXuoi.map((f, i) => (
+                <Link
+                  key={f.id}
+                  to={`/van-tho/${f.id}`}
+                  className="group block card-hover p-8"
+                  style={{
+                    borderTop: '1px solid var(--color-muted-border)',
+                    borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
+                  }}
+                >
+                  {f.appProperties?.category && (
+                    <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
+                      {f.appProperties.category}
+                    </p>
+                  )}
+                  <h3
+                    className="text-display-sm mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                    style={{ color: 'var(--color-charcoal)' }}
                   >
-                    <div className="flex-1">
-                      <h3
-                        className="text-display-sm transition-colors group-hover:text-[var(--color-oxblood)]"
-                        style={{ color: 'var(--color-charcoal)' }}
-                      >
-                        {poem.title}
-                      </h3>
-                      <p
-                        className="poem-content mt-3 text-sm"
-                        style={{ textAlign: 'left', fontSize: '1rem' }}
-                      >
-                        {poem.preview}
-                      </p>
-                      <p className="text-label mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
-                        {poem.date}
-                      </p>
-                    </div>
-                    <span
-                      className="material-symbols-outlined text-xl mt-1 transition-transform group-hover:translate-x-1"
-                      style={{ color: 'var(--color-muted-border)' }}
+                    {f.name.replace(/\.md$/, '')}
+                  </h3>
+                  <p className="text-label mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
+                    {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
+                  </p>
+                </Link>
+              ))}
+            </div>
+            <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
+          </div>
+        </section>
+      )}
+
+      {/* Divider */}
+      {vanXuoi.length > 0 && tho.length > 0 && (
+        <div className="container-main">
+          <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
+        </div>
+      )}
+
+      {/* Featured Poems */}
+      {tho.length > 0 && (
+        <section className="section-gap">
+          <div className="container-main">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              <div className="lg:col-span-3">
+                <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>
+                  Thi ca
+                </p>
+                <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>
+                  Thơ gần đây
+                </h2>
+                <p className="text-body-md mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
+                  Những vần thơ ghi lại cảm xúc, kỷ niệm và suy ngẫm về cuộc đời.
+                </p>
+                <Link
+                  to="/van-tho"
+                  className="inline-flex items-center gap-1 mt-6 text-label transition-colors hover:text-[var(--color-charcoal)]"
+                  style={{ color: 'var(--color-oxblood)' }}
+                >
+                  Xem tất cả thơ
+                  <span className="material-symbols-outlined text-[1em]">arrow_forward</span>
+                </Link>
+              </div>
+
+              <div className="lg:col-span-9">
+                <div className="flex flex-col" style={{ borderTop: '1px solid var(--color-muted-border)' }}>
+                  {tho.map((f) => (
+                    <Link
+                      key={f.id}
+                      to={`/tho/${f.id}`}
+                      className="group py-8 flex gap-8 items-start"
+                      style={{ borderBottom: '1px solid var(--color-muted-border)' }}
                     >
-                      arrow_forward
-                    </span>
-                  </Link>
-                ))}
+                      <div className="flex-1">
+                        <h3
+                          className="text-display-sm transition-colors group-hover:text-[var(--color-oxblood)]"
+                          style={{ color: 'var(--color-charcoal)' }}
+                        >
+                          {f.name.replace(/\.md$/, '')}
+                        </h3>
+                        <p className="text-label mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
+                          {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
+                        </p>
+                      </div>
+                      <span
+                        className="material-symbols-outlined text-xl mt-1 transition-transform group-hover:translate-x-1"
+                        style={{ color: 'var(--color-muted-border)' }}
+                      >
+                        arrow_forward
+                      </span>
+                    </Link>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* About banner */}
       <section

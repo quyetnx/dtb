@@ -67,21 +67,27 @@ async function getServiceAccountToken(serviceAccountKey: string, scope = 'https:
   return tokenData.access_token
 }
 
-// GET /api/drive/file?id=<fileId> — read file content
+// GET /api/drive/file?id=<fileId> — read file content + metadata
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url)
   const fileId = url.searchParams.get('id')
   if (!fileId) return Response.json({ error: 'Missing id' }, { status: 400 })
 
   const token = await getServiceAccountToken(env.GOOGLE_SERVICE_ACCOUNT_KEY, 'https://www.googleapis.com/auth/drive.readonly')
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-    headers: { Authorization: `Bearer ${token}` },
-  })
+  const [contentRes, metaRes] = await Promise.all([
+    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=id,name,modifiedTime,appProperties&supportsAllDrives=true`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }),
+  ])
 
-  if (!res.ok) return Response.json({ error: 'File not found' }, { status: 404 })
+  if (!contentRes.ok) return Response.json({ error: 'File not found' }, { status: 404 })
 
-  const content = await res.text()
-  return Response.json({ content })
+  const content = await contentRes.text()
+  const meta = metaRes.ok ? await metaRes.json() : {}
+  return Response.json({ content, ...meta })
 }
 
 // POST /api/drive/file — create new file
