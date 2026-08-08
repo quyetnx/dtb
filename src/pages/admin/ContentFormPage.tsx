@@ -68,11 +68,14 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
     const res = await fetch(url, opts)
     if (!res.ok) {
       if (res.status === 401) { window.location.href = '/admin/login'; throw new Error('Unauthorized') }
-      let errMsg = `Lỗi ${res.status}`
+      let errMsg = `HTTP ${res.status}`
       try {
         const body = await res.json() as { error?: string; detail?: string; message?: string }
-        errMsg = body.error ?? body.message ?? body.detail ?? errMsg
-      } catch { /* ignore parse error */ }
+        const main = body.error ?? body.message ?? errMsg
+        const detail = body.detail ? ` — ${body.detail}` : ''
+        errMsg = `${main}${detail}`
+      } catch { /* ignore */ }
+      console.error('[apiFetch]', url, res.status, errMsg)
       throw new Error(errMsg)
     }
     return res
@@ -136,7 +139,10 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         msg.success('Đã tạo bài')
         navigate(backPath)
       }
-    } catch (e) { msg.error((e as Error).message || 'Lưu thất bại') }
+    } catch (e) {
+      const errText = (e as Error).message || 'Lưu thất bại'
+      msg.error({ content: errText, duration: 10 })
+    }
     finally { setSaving(false) }
   }
 

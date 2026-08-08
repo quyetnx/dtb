@@ -76,9 +76,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   )
 
   if (!res.ok) {
-    const err = await res.text()
-    console.error('[drive/file] POST failed', res.status, err)
-    return Response.json({ error: 'Tạo file thất bại', detail: err }, { status: 500 })
+    const errText = await res.text()
+    console.error('[drive/file] POST failed', res.status, errText)
+    let detail = errText
+    try { detail = JSON.stringify((JSON.parse(errText) as { error?: unknown }).error ?? JSON.parse(errText)) } catch { /* keep raw */ }
+    return Response.json({ error: `Drive API ${res.status}`, detail }, { status: 500 })
   }
 
   return Response.json(await res.json(), { status: 201 })
@@ -110,9 +112,11 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
       body: JSON.stringify({ name: body.name, appProperties: body.appProperties }),
     })
     if (!metaRes.ok) {
-      const err = await metaRes.text()
-      console.error('[drive/file] PATCH meta failed', metaRes.status, err)
-      return Response.json({ error: 'Cập nhật metadata thất bại', detail: err }, { status: 500 })
+      const errText = await metaRes.text()
+      console.error('[drive/file] PATCH meta failed', metaRes.status, errText)
+      let detail = errText
+      try { detail = JSON.stringify((JSON.parse(errText) as { error?: unknown }).error ?? JSON.parse(errText)) } catch { /* keep raw */ }
+      return Response.json({ error: `Drive API ${metaRes.status} (metadata)`, detail }, { status: 500 })
     }
   }
 
@@ -123,9 +127,11 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
       body: body.content,
     })
     if (!contentRes.ok) {
-      const err = await contentRes.text()
-      console.error('[drive/file] PATCH content failed', contentRes.status, err)
-      return Response.json({ error: 'Cập nhật nội dung thất bại', detail: err }, { status: 500 })
+      const errText = await contentRes.text()
+      console.error('[drive/file] PATCH content failed', contentRes.status, errText)
+      let detail = errText
+      try { detail = JSON.stringify((JSON.parse(errText) as { error?: unknown }).error ?? JSON.parse(errText)) } catch { /* keep raw */ }
+      return Response.json({ error: `Drive API ${contentRes.status} (content)`, detail }, { status: 500 })
     }
   }
 

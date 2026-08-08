@@ -39,11 +39,14 @@ export default function ContentListPage({ title, contentType, basePath, category
     const res = await fetch(url, opts)
     if (!res.ok) {
       if (res.status === 401) { navigate('/admin/login'); throw new Error('Unauthorized') }
-      let errMsg = `Lỗi ${res.status}`
+      let errMsg = `HTTP ${res.status}`
       try {
-        const body = await res.json() as { error?: string }
-        errMsg = body.error ?? errMsg
+        const body = await res.json() as { error?: string; detail?: string }
+        const main = body.error ?? errMsg
+        const detail = body.detail ? ` — ${body.detail}` : ''
+        errMsg = `${main}${detail}`
       } catch { /* ignore */ }
+      console.error('[apiFetch]', url, res.status, errMsg)
       throw new Error(errMsg)
     }
     return res
