@@ -330,52 +330,96 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <Space wrap>
-          <Button
-            icon={foldersLoading ? <Spin size="small" /> : <FolderOutlined />}
-            onClick={loadFolders}
-            disabled={foldersLoading || !drive?.connected}
-          >
-            Tải danh sách thư mục
-          </Button>
-        </Space>
-
-        {folders.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>Chọn thư mục</Text>
-            <Select
-              style={{ width: '100%', marginBottom: 12 }}
-              placeholder="-- Chọn thư mục --"
-              value={currentFolder || undefined}
-              onChange={(val) => setCurrentFolder(val)}
-              options={folders.map((f) => ({ value: f.id, label: f.name }))}
-              showSearch
-              filterOption={(input, opt) => (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
-            />
-            <Space>
-              <Button
-                type="primary"
-                loading={folderSaving}
-                onClick={saveFolder}
-                style={{ background: '#5d2e2e', borderColor: '#5d2e2e' }}
-              >
-                Lưu thư mục
-              </Button>
-              {currentFolder && (
-                <Button
-                  onClick={() => { setCurrentFolder(''); saveFolder() }}
-                >
-                  Bỏ cài đặt
-                </Button>
-              )}
-            </Space>
-          </div>
-        )}
-
-        {!drive?.connected && (
+        {!drive?.connected ? (
           <Text type="secondary" style={{ fontSize: 12 }}>
             Kết nối Google Drive trước để chọn thư mục.
           </Text>
+        ) : (
+          <>
+            {/* Manual ID input */}
+            <div style={{ marginBottom: 12 }}>
+              <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Nhập ID thư mục</Text>
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  placeholder="Dán folder ID từ URL Google Drive..."
+                  value={currentFolder}
+                  onChange={(e) => setCurrentFolder(e.target.value.trim())}
+                  style={{ fontFamily: 'monospace', fontSize: 13 }}
+                />
+                <Button
+                  type="primary"
+                  loading={folderSaving}
+                  onClick={saveFolder}
+                  disabled={!currentFolder}
+                  style={{ background: '#5d2e2e', borderColor: '#5d2e2e' }}
+                >
+                  Lưu
+                </Button>
+              </Space.Compact>
+              <Text type="secondary" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>
+                Lấy ID từ URL Drive: drive.google.com/drive/folders/<strong>{'<ID>'}</strong>
+              </Text>
+            </div>
+
+            <Divider plain style={{ fontSize: 12, color: '#bbb', margin: '12px 0' }}>hoặc chọn từ danh sách</Divider>
+
+            <Button
+              icon={foldersLoading ? <Spin size="small" /> : <FolderOutlined />}
+              onClick={loadFolders}
+              disabled={foldersLoading}
+              style={{ marginBottom: folders.length > 0 ? 12 : 0 }}
+            >
+              {foldersLoading ? 'Đang tải...' : 'Tải danh sách thư mục'}
+            </Button>
+
+            {folders.length > 0 && (
+              <div>
+                <Select
+                  style={{ width: '100%', marginBottom: 12 }}
+                  placeholder="-- Chọn thư mục --"
+                  value={currentFolder || undefined}
+                  onChange={(val) => setCurrentFolder(val)}
+                  options={folders.map((f) => ({ value: f.id, label: f.name }))}
+                  showSearch
+                  filterOption={(input, opt) => (opt?.label as string ?? '').toLowerCase().includes(input.toLowerCase())}
+                />
+                <Space>
+                  <Button
+                    type="primary"
+                    loading={folderSaving}
+                    onClick={saveFolder}
+                    disabled={!currentFolder}
+                    style={{ background: '#5d2e2e', borderColor: '#5d2e2e' }}
+                  >
+                    Lưu thư mục
+                  </Button>
+                  {currentFolder && (
+                    <Button
+                      onClick={async () => {
+                        setCurrentFolder('')
+                        setFolderSaving(true)
+                        try {
+                          await fetch('/api/site/folder', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ folderId: '' }),
+                          })
+                          msg.success('Đã xóa cài đặt thư mục')
+                          setFolderSource('none')
+                        } catch {
+                          msg.error('Không thể xóa cài đặt')
+                        } finally {
+                          setFolderSaving(false)
+                        }
+                      }}
+                    >
+                      Bỏ cài đặt
+                    </Button>
+                  )}
+                </Space>
+              </div>
+            )}
+          </>
         )}
       </Section>
 

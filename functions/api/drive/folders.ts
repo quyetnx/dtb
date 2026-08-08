@@ -20,9 +20,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
 
   const driveUrl = new URL('https://www.googleapis.com/drive/v3/files')
   driveUrl.searchParams.set('q', "mimeType='application/vnd.google-apps.folder' and trashed=false")
-  driveUrl.searchParams.set('fields', 'files(id,name,parents)')
+  driveUrl.searchParams.set('fields', 'files(id,name,parents,driveId)')
   driveUrl.searchParams.set('orderBy', 'name')
-  driveUrl.searchParams.set('pageSize', '100')
+  driveUrl.searchParams.set('pageSize', '200')
+  driveUrl.searchParams.set('supportsAllDrives', 'true')
+  driveUrl.searchParams.set('includeItemsFromAllDrives', 'true')
 
   const res = await fetch(driveUrl.toString(), {
     headers: { Authorization: `Bearer ${token}` },
