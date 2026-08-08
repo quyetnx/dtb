@@ -44,6 +44,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const url = new URL(request.url)
   const maxResults = url.searchParams.get('maxResults') ?? '12'
+  const q = url.searchParams.get('q') ?? ''
+  const pageToken = url.searchParams.get('pageToken') ?? ''
 
   let channelId: string
   try {
@@ -58,9 +60,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   apiUrl.searchParams.set('part', 'snippet')
   apiUrl.searchParams.set('channelId', channelId)
   apiUrl.searchParams.set('type', 'video')
-  apiUrl.searchParams.set('order', 'date')
+  apiUrl.searchParams.set('order', q ? 'relevance' : 'date')
   apiUrl.searchParams.set('maxResults', maxResults)
   apiUrl.searchParams.set('key', env.YOUTUBE_API_KEY)
+  if (q) apiUrl.searchParams.set('q', q)
+  if (pageToken) apiUrl.searchParams.set('pageToken', pageToken)
 
   const res = await fetch(apiUrl.toString())
   if (!res.ok) {
@@ -69,7 +73,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ items: [], error: `YouTube API error ${res.status}: ${err}` }, { status: 502 })
   }
 
-  const data = (await res.json()) as { items: YTSearchItem[] }
+  const data = (await res.json()) as { items: YTSearchItem[]; nextPageToken?: string; prevPageToken?: string }
 
   const items = (data.items ?? []).map((item) => ({
     id: item.id.videoId,
@@ -80,7 +84,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     channelTitle: item.snippet.channelTitle,
   }))
 
-  return Response.json({ items }, {
-    headers: { 'Cache-Control': 'public, max-age=1800' },
-  })
+  return Response.json(
+    { items, nextPageToken: data.nextPageToken ?? null, prevPageToken: data.prevPageToken ?? null },
+    { headers: { 'Cache-Control': 'public, max-age=1800' } },
+  )
 }
