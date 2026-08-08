@@ -53,9 +53,9 @@ export default function VideoDetailPage() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // Fetch related (latest 4, excluding current)
+  // Fetch related: get top 20 published, exclude current, take 4
   useEffect(() => {
-    fetch('/api/youtube/list?maxResults=5')
+    fetch('/api/youtube/list?maxResults=20')
       .then((r) => r.json() as Promise<{ items: RelatedVideo[] }>)
       .then((d) => setRelated((d.items ?? []).filter((v) => v.id !== id).slice(0, 4)))
       .catch(() => {})
