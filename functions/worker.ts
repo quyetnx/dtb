@@ -12,8 +12,9 @@ import {
 import { onRequestGet as handleDriveImage } from './api/drive/image'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
-
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
+import { onRequestGet as handleDriveStatus } from './api/drive/status'
+
 interface Env {
   ASSETS: Fetcher
   SESSIONS: KVNamespace
@@ -22,6 +23,7 @@ interface Env {
   ADMIN_EMAILS: string
   SESSION_SECRET: string
   GOOGLE_DRIVE_FOLDER_ID?: string
+  DRIVE_ACCOUNT_EMAIL?: string
   YOUTUBE_API_KEY: string
   YOUTUBE_CHANNEL_ID: string
 }
@@ -78,6 +80,7 @@ export default {
     }
 
     if (path === '/api/drive/list' && method === 'GET') return handleDriveList(makeCtx(request, env))
+    if (path === '/api/drive/status' && method === 'GET') return handleDriveStatus(makeCtx(request, env))
     if (path === '/api/drive/file') {
       if (method === 'POST') return handleDriveFilePost(makeCtx(request, env))
       if (method === 'PATCH') return handleDriveFilePatch(makeCtx(request, env))

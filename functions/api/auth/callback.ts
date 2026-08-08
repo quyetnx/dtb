@@ -6,6 +6,7 @@ interface Env {
   ADMIN_EMAILS: string
   SESSION_SECRET: string
   SESSIONS: KVNamespace
+  DRIVE_ACCOUNT_EMAIL?: string  // The ONE Google account whose Drive stores all content
 }
 
 interface GoogleTokenResponse {
@@ -68,12 +69,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return new Response('Access denied: email not authorized', { status: 403 })
   }
 
-  // Store Drive credentials in KV (used by all Drive API functions)
-  if (tokens.refresh_token) {
-    await env.SESSIONS.put('drive:refresh_token', tokens.refresh_token)
+  // Store Drive credentials only for the designated content account.
+  // If DRIVE_ACCOUNT_EMAIL is set: only that email can overwrite the Drive token.
+  // If not set: first admin to log in with a refresh_token sets it (don't overwrite).
+  const driveEmail = env.DRIVE_ACCOUNT_EMAIL?.trim().toLowerCase() ?? ''
+  let canWriteDriveToken = false
+  if (driveEmail) {
+    canWriteDriveToken = user.email.toLowerCase() === driveEmail
+  } else {
+    const existing = await env.SESSIONS.get('drive:refresh_token')
+    canWriteDriveToken = !existing
   }
-  if (tokens.access_token) {
-    await env.SESSIONS.put('drive:access_token', tokens.access_token, { expirationTtl: 3300 })
+
+  if (canWriteDriveToken) {
+    if (tokens.refresh_token) {
+      await env.SESSIONS.put('drive:refresh_token', tokens.refresh_token)
+      await env.SESSIONS.put('drive:account_email', user.email)
+    }
+    if (tokens.access_token) {
+      await env.SESSIONS.put('drive:access_token', tokens.access_token, { expirationTtl: 3300 })
+    }
   }
 
   // Create session

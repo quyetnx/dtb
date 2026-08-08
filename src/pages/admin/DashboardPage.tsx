@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Card, Col, Row, Statistic, Typography, Spin, Switch, message } from 'antd'
-import { FileTextOutlined, ReadOutlined, PictureOutlined, BookOutlined, GlobalOutlined } from '@ant-design/icons'
+import { Card, Col, Row, Statistic, Typography, Spin, Switch, message, Alert, Button } from 'antd'
+import {
+  FileTextOutlined, ReadOutlined, PictureOutlined, BookOutlined,
+  GlobalOutlined, CheckCircleOutlined, WarningOutlined, LinkOutlined,
+} from '@ant-design/icons'
 
 const { Title, Text } = Typography
 
@@ -11,11 +14,12 @@ interface FileItem {
   appProperties?: { type?: string }
 }
 
-interface Stats {
-  vanXuoi: number
-  tho: number
-  ngheThuat: number
-  hinhAnh: number
+interface Stats { vanXuoi: number; tho: number; ngheThuat: number; hinhAnh: number }
+
+interface DriveStatus {
+  connected: boolean
+  email: string | null
+  expectedEmail: string | null
 }
 
 export default function DashboardPage() {
@@ -24,15 +28,21 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [sitePublic, setSitePublic] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [drive, setDrive] = useState<DriveStatus | null>(null)
 
   useEffect(() => {
     fetch('/api/site/status').then((r) => r.json()).then((d: { public: boolean }) => setSitePublic(d.public))
+    fetch('/api/drive/status').then((r) => r.json()).then(setDrive).catch(() => {})
   }, [])
 
   const togglePublic = async (val: boolean) => {
     setToggling(true)
     try {
-      await fetch('/api/site/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ public: val }) })
+      await fetch('/api/site/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ public: val }),
+      })
       setSitePublic(val)
       message.success(val ? 'Website đã mở public' : 'Website đã chuyển sang chế độ sắp ra mắt')
     } catch {
@@ -56,9 +66,11 @@ export default function DashboardPage() {
           ngheThuat: files.filter((f) => f.appProperties?.type === 'nghe-thuat').length,
           hinhAnh: images.length,
         })
-        setRecent([...files, ...images].sort((a, b) =>
-          new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime()
-        ).slice(0, 8))
+        setRecent(
+          [...files, ...images]
+            .sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime())
+            .slice(0, 8),
+        )
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -73,11 +85,80 @@ export default function DashboardPage() {
     { title: 'Hình ảnh', value: stats.hinhAnh, icon: <PictureOutlined style={{ color: '#7a5200' }} />, color: '#fff8ee' },
   ]
 
+  const driveWrong = drive?.connected && drive.expectedEmail && drive.email?.toLowerCase() !== drive.expectedEmail.toLowerCase()
+
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 24, color: '#2d2d2d' }}>Tổng quan</Title>
+      <Title level={4} style={{ marginBottom: 20, color: '#2d2d2d' }}>Tổng quan</Title>
 
-      <Card style={{ marginBottom: 24, borderRadius: 8, background: sitePublic ? '#f0fff4' : '#fff8ee', border: `1px solid ${sitePublic ? '#b7eb8f' : '#ffd591'}` }}>
+      {/* Drive status */}
+      {drive && (
+        <div style={{ marginBottom: 16 }}>
+          {!drive.connected ? (
+            <Alert
+              type="warning"
+              icon={<WarningOutlined />}
+              showIcon
+              message="Drive chưa được kết nối"
+              description={
+                <span>
+                  Chưa có tài khoản Drive nào được ủy quyền.{' '}
+                  {drive.expectedEmail
+                    ? <>Đăng nhập bằng tài khoản <strong>{drive.expectedEmail}</strong> để kết nối.</>
+                    : 'Tài khoản đầu tiên đăng nhập sẽ được dùng làm kho lưu trữ.'}
+                  {' '}
+                  <Button size="small" type="link" icon={<LinkOutlined />} href="/api/auth/google" style={{ padding: 0 }}>
+                    Đăng nhập ngay
+                  </Button>
+                </span>
+              }
+              style={{ borderRadius: 8 }}
+            />
+          ) : driveWrong ? (
+            <Alert
+              type="error"
+              icon={<WarningOutlined />}
+              showIcon
+              message="Drive kết nối sai tài khoản"
+              description={
+                <span>
+                  Hiện đang dùng Drive của <strong>{drive.email}</strong> nhưng cần <strong>{drive.expectedEmail}</strong>.
+                  {' '}Tài khoản <strong>{drive.expectedEmail}</strong> cần đăng nhập lại để cập nhật token.
+                  <br />
+                  <Button size="small" type="link" icon={<LinkOutlined />} href="/api/auth/google" style={{ padding: 0 }}>
+                    Đăng nhập với tài khoản đúng
+                  </Button>
+                </span>
+              }
+              style={{ borderRadius: 8 }}
+            />
+          ) : (
+            <Alert
+              type="success"
+              icon={<CheckCircleOutlined />}
+              showIcon
+              message={
+                <span>
+                  Drive đang kết nối: <strong>{drive.email}</strong>
+                  {drive.expectedEmail && drive.email?.toLowerCase() === drive.expectedEmail.toLowerCase() && (
+                    <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>(tài khoản được chỉ định)</Text>
+                  )}
+                </span>
+              }
+              style={{ borderRadius: 8 }}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Site public toggle */}
+      <Card
+        style={{
+          marginBottom: 16, borderRadius: 8,
+          background: sitePublic ? '#f0fff4' : '#fff8ee',
+          border: `1px solid ${sitePublic ? '#b7eb8f' : '#ffd591'}`,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <GlobalOutlined style={{ fontSize: 20, color: sitePublic ? '#52c41a' : '#fa8c16' }} />
           <div style={{ flex: 1 }}>
@@ -87,16 +168,23 @@ export default function DashboardPage() {
               {sitePublic ? 'Public — khách truy cập thấy nội dung' : 'Sắp ra mắt — khách thấy trang chờ'}
             </Text>
           </div>
-          <Switch checked={sitePublic} loading={toggling} onChange={togglePublic} checkedChildren="Public" unCheckedChildren="Sắp ra mắt" />
+          <Switch
+            checked={sitePublic}
+            loading={toggling}
+            onChange={togglePublic}
+            checkedChildren="Public"
+            unCheckedChildren="Sắp ra mắt"
+          />
         </div>
       </Card>
 
+      {/* Stats */}
       <Row gutter={[16, 16]}>
         {cards.map((c) => (
-          <Col xs={24} sm={12} lg={6} key={c.title}>
+          <Col xs={12} sm={12} lg={6} key={c.title}>
             <Card style={{ borderRadius: 8, background: c.color, border: 'none' }}>
               <Statistic
-                title={<Text style={{ fontSize: 13 }}>{c.title}</Text>}
+                title={<Text style={{ fontSize: 12 }}>{c.title}</Text>}
                 value={c.value}
                 prefix={c.icon}
               />
@@ -105,7 +193,8 @@ export default function DashboardPage() {
         ))}
       </Row>
 
-      <Card style={{ marginTop: 24, borderRadius: 8 }} title="Cập nhật gần đây">
+      {/* Recent */}
+      <Card style={{ marginTop: 16, borderRadius: 8 }} title="Cập nhật gần đây">
         {recent.length === 0 ? (
           <Text type="secondary">Chưa có nội dung nào.</Text>
         ) : (
@@ -113,14 +202,9 @@ export default function DashboardPage() {
             {recent.map((f) => (
               <div
                 key={f.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '8px 0',
-                  borderBottom: '1px solid #f0f0f0',
-                }}
+                style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}
               >
-                <Text>{f.name.replace(/\.[^.]+$/, '')}</Text>
+                <Text style={{ fontSize: 13 }}>{f.name.replace(/\.[^.]+$/, '')}</Text>
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
                 </Text>
