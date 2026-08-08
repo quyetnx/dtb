@@ -15,12 +15,16 @@ interface VideoItem {
 export default function AdminVideoPage() {
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [msg, ctxHolder] = message.useMessage()
 
   useEffect(() => {
     fetch('/api/youtube/list?maxResults=24')
       .then((r) => r.json())
-      .then((d) => setVideos(d.items ?? []))
+      .then((d) => {
+        setVideos(d.items ?? [])
+        if (d.error) setApiError(d.error)
+      })
       .catch(() => msg.error('Không thể tải danh sách video'))
       .finally(() => setLoading(false))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -43,7 +47,11 @@ export default function AdminVideoPage() {
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
       ) : videos.length === 0 ? (
-        <Empty description="Chưa có video nào (kiểm tra YOUTUBE_API_KEY và YOUTUBE_CHANNEL_ID)" />
+        <Empty description={
+          apiError
+            ? <span style={{ color: 'red' }}>Lỗi API: {apiError}</span>
+            : 'Chưa có video nào'
+        } />
       ) : (
         <Row gutter={[16, 16]}>
           {videos.map((v) => (
