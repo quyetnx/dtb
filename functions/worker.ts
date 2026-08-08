@@ -14,6 +14,7 @@ import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
 import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } from './api/site/bio'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
+import { onRequestGet as handleYoutubeVideo } from './api/youtube/video'
 import { onRequestGet as handleDriveStatus } from './api/drive/status'
 import { onRequestPost as handleDriveDisconnect } from './api/drive/disconnect'
 import { onRequestGet as handleDriveFolders } from './api/drive/folders'
@@ -201,6 +202,7 @@ export default {
 
     // Public YouTube
     if (path === '/api/youtube/list' && method === 'GET') return handleYoutubeList(makeCtx(request, env))
+    if (path === '/api/youtube/video' && method === 'GET') return handleYoutubeVideo(makeCtx(request, env))
 
     // ── Protected routes (auth required) ──────────────────────────────────
     if (!(await isAuthenticated(request, env))) {
