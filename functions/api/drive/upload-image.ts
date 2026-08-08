@@ -22,22 +22,39 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
   }
 
-  const metadata: Record<string, unknown> = { name, mimeType: file.type }
-  if (env.GOOGLE_DRIVE_FOLDER_ID) metadata.parents = [env.GOOGLE_DRIVE_FOLDER_ID]
+  const folderId = env.GOOGLE_DRIVE_FOLDER_ID ?? ''
+  const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name&supportsAllDrives=true'
 
-  const body = new FormData()
-  body.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
-  body.append('file', file)
+  const buildBody = (withParent: boolean) => {
+    const metadata: Record<string, unknown> = { name, mimeType: file.type }
+    if (withParent && folderId) metadata.parents = [folderId]
+    const body = new FormData()
+    body.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+    body.append('file', file)
+    return body
+  }
 
-  const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name&supportsAllDrives=true',
-    { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body },
-  )
+  let res = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: buildBody(true),
+  })
+
+  if (!res.ok && res.status === 404 && folderId) {
+    console.warn('[upload-image] folder 404, retrying without parent', folderId)
+    res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: buildBody(false),
+    })
+  }
 
   if (!res.ok) {
-    const err = await res.text()
-    console.error('[upload-image] failed', res.status, err)
-    return Response.json({ error: 'Upload failed', detail: err }, { status: 500 })
+    const errText = await res.text()
+    console.error('[upload-image] failed', res.status, errText)
+    let detail = errText
+    try { detail = JSON.stringify((JSON.parse(errText) as { error?: unknown }).error ?? JSON.parse(errText)) } catch { /* keep raw */ }
+    return Response.json({ error: `Drive API ${res.status}`, detail }, { status: 500 })
   }
 
   return Response.json(await res.json(), { status: 201 })

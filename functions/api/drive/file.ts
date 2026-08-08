@@ -59,21 +59,36 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const folderId = body.folder ?? env.GOOGLE_DRIVE_FOLDER_ID ?? ''
 
-  const metadata: Record<string, unknown> = {
-    name: body.name,
-    mimeType: 'text/plain',
-    appProperties: body.appProperties ?? {},
+  const buildForm = (withParent: boolean) => {
+    const metadata: Record<string, unknown> = {
+      name: body.name,
+      mimeType: 'text/plain',
+      appProperties: body.appProperties ?? {},
+    }
+    if (withParent && folderId) metadata.parents = [folderId]
+    const form = new FormData()
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+    form.append('file', new Blob([body.content], { type: 'text/plain' }))
+    return form
   }
-  if (folderId) metadata.parents = [folderId]
 
-  const form = new FormData()
-  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
-  form.append('file', new Blob([body.content], { type: 'text/plain' }))
+  const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime&supportsAllDrives=true'
 
-  const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime&supportsAllDrives=true',
-    { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form },
-  )
+  let res = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: buildForm(true),
+  })
+
+  // Folder không truy cập được → thử lại không có parent (lưu vào Drive root)
+  if (!res.ok && res.status === 404 && folderId) {
+    console.warn('[drive/file] folder 404, retrying without parent', folderId)
+    res = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: buildForm(false),
+    })
+  }
 
   if (!res.ok) {
     const errText = await res.text()
