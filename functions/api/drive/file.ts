@@ -108,7 +108,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
   form.append('file', new Blob([body.content], { type: 'text/plain' }))
 
-  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime', {
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime&supportsAllDrives=true', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
     body: form,
@@ -140,7 +140,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
 
   // Update metadata if needed
   if (body.name || body.appProperties) {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: body.name, appProperties: body.appProperties }),
@@ -149,7 +149,7 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
 
   // Update content if provided
   if (body.content !== undefined) {
-    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&supportsAllDrives=true`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'text/plain' },
       body: body.content,

@@ -89,6 +89,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   driveUrl.searchParams.set('fields', 'files(id,name,mimeType,modifiedTime,size,description,appProperties)')
   driveUrl.searchParams.set('orderBy', 'modifiedTime desc')
   driveUrl.searchParams.set('pageSize', '50')
+  driveUrl.searchParams.set('supportsAllDrives', 'true')
+  driveUrl.searchParams.set('includeItemsFromAllDrives', 'true')
 
   const res = await fetch(driveUrl.toString(), {
     headers: { Authorization: `Bearer ${token}` },
