@@ -8,7 +8,7 @@ import {
   ArrowLeftOutlined, DeleteOutlined, FileWordOutlined,
   PictureOutlined, SaveOutlined, SettingOutlined, UploadOutlined,
 } from '@ant-design/icons'
-import MDEditor from '@uiw/react-md-editor'
+import MDEditor, { commands } from '@uiw/react-md-editor'
 import '@uiw/react-md-editor/markdown-editor.css'
 import dayjs from 'dayjs'
 
@@ -41,7 +41,9 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   const [coverUploading, setCoverUploading] = useState(false)
   const [docxImporting, setDocxImporting] = useState(false)
   const [contentFormat, setContentFormat] = useState<'markdown' | 'html'>('markdown')
+  const [imageInserting, setImageInserting] = useState(false)
   const docxInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
   const [form] = Form.useForm<FormValues>()
   const [msg, ctxHolder] = message.useMessage()
 
@@ -114,6 +116,35 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
       setDocxImporting(false)
       if (docxInputRef.current) docxInputRef.current.value = ''
     }
+  }
+
+  const handleInlineImageUpload = async (file: File) => {
+    setImageInserting(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('name', file.name)
+      const res = await apiFetch('/api/drive/upload-image', { method: 'POST', body: fd })
+      const data = await res.json() as { id: string }
+      const mdImage = `![${file.name.replace(/\.[^.]+$/, '')}](/api/drive/image?id=${data.id})`
+      setContent((prev) => prev ? `${prev}\n\n${mdImage}` : mdImage)
+      msg.success('Đã chèn ảnh vào nội dung')
+    } catch (e) { msg.error((e as Error).message || 'Không thể tải ảnh') }
+    finally {
+      setImageInserting(false)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+    }
+  }
+
+  const insertImageCommand = commands.getCommands().find((c) => c.name === 'image') ?? commands.image
+  const insertImageCmd = {
+    ...insertImageCommand,
+    icon: (
+      <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, padding: '0 2px' }}>
+        {imageInserting ? '⏳' : '🖼'} Chèn ảnh
+      </span>
+    ),
+    execute: () => { imageInputRef.current?.click() },
   }
 
   const handleSave = async () => {
@@ -191,6 +222,13 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         accept=".docx"
         style={{ display: 'none' }}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocxImport(f) }}
+      />
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleInlineImageUpload(f) }}
       />
 
       {/* Sticky action bar */}
@@ -302,6 +340,19 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
                     height={520}
                     preview="live"
                     style={{ borderRadius: 0, border: 'none' }}
+                    commands={[
+                      commands.bold, commands.italic, commands.strikethrough,
+                      commands.divider,
+                      commands.title1, commands.title2, commands.title3,
+                      commands.divider,
+                      commands.link, insertImageCmd,
+                      commands.divider,
+                      commands.quote, commands.code, commands.codeBlock,
+                      commands.divider,
+                      commands.unorderedListCommand, commands.orderedListCommand,
+                      commands.divider,
+                      commands.hr,
+                    ]}
                   />
                 </div>
               )}
