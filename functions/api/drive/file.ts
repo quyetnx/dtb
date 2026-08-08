@@ -117,7 +117,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!res.ok) {
     const err = await res.text()
     console.error('[drive/file] POST upload failed', res.status, err)
-    return Response.json({ error: 'Upload failed', detail: err }, { status: 500 })
+    return Response.json({ error: 'Upload failed', detail: err, folderId, folderIdLength: folderId?.length }, { status: 500 })
   }
 
   const file = await res.json()
