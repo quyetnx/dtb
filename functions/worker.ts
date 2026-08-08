@@ -14,6 +14,7 @@ import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleDriveStatus } from './api/drive/status'
+import { onRequestPost as handleDriveDisconnect } from './api/drive/disconnect'
 
 interface Env {
   ASSETS: Fetcher
@@ -81,6 +82,7 @@ export default {
 
     if (path === '/api/drive/list' && method === 'GET') return handleDriveList(makeCtx(request, env))
     if (path === '/api/drive/status' && method === 'GET') return handleDriveStatus(makeCtx(request, env))
+    if (path === '/api/drive/disconnect' && method === 'POST') return handleDriveDisconnect(makeCtx(request, env))
     if (path === '/api/drive/file') {
       if (method === 'POST') return handleDriveFilePost(makeCtx(request, env))
       if (method === 'PATCH') return handleDriveFilePatch(makeCtx(request, env))

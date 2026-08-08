@@ -11,6 +11,7 @@ import {
   MenuOutlined,
   PlayCircleOutlined,
   CloseOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 
 const { Sider, Content } = Layout
@@ -65,6 +66,7 @@ export default function AdminLayout() {
     { key: '/admin/nghe-thuat', icon: <BookOutlined />, label: <Link to="/admin/nghe-thuat">Nghệ thuật</Link> },
     { key: '/admin/hinh-anh', icon: <PictureOutlined />, label: <Link to="/admin/hinh-anh">Hình ảnh</Link> },
     { key: '/admin/video', icon: <PlayCircleOutlined />, label: <Link to="/admin/video">Video</Link> },
+    { key: '/admin/settings', icon: <SettingOutlined />, label: <Link to="/admin/settings">Cài đặt</Link> },
   ]
 
   const selectedKey = [...menuItems].reverse()

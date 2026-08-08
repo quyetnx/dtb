@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Card, Col, Row, Statistic, Typography, Spin, Switch, message, Alert, Button } from 'antd'
+import { Card, Col, Row, Statistic, Typography, Spin, Switch, message } from 'antd'
 import {
-  FileTextOutlined, ReadOutlined, PictureOutlined, BookOutlined,
-  GlobalOutlined, CheckCircleOutlined, WarningOutlined, LinkOutlined,
+  FileTextOutlined, ReadOutlined, PictureOutlined, BookOutlined, GlobalOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text } = Typography
@@ -16,11 +15,6 @@ interface FileItem {
 
 interface Stats { vanXuoi: number; tho: number; ngheThuat: number; hinhAnh: number }
 
-interface DriveStatus {
-  connected: boolean
-  email: string | null
-  expectedEmail: string | null
-}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ vanXuoi: 0, tho: 0, ngheThuat: 0, hinhAnh: 0 })
@@ -28,11 +22,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [sitePublic, setSitePublic] = useState(false)
   const [toggling, setToggling] = useState(false)
-  const [drive, setDrive] = useState<DriveStatus | null>(null)
 
   useEffect(() => {
     fetch('/api/site/status').then((r) => r.json()).then((d: { public: boolean }) => setSitePublic(d.public))
-    fetch('/api/drive/status').then((r) => r.json()).then(setDrive).catch(() => {})
   }, [])
 
   const togglePublic = async (val: boolean) => {
@@ -85,71 +77,9 @@ export default function DashboardPage() {
     { title: 'Hình ảnh', value: stats.hinhAnh, icon: <PictureOutlined style={{ color: '#7a5200' }} />, color: '#fff8ee' },
   ]
 
-  const driveWrong = drive?.connected && drive.expectedEmail && drive.email?.toLowerCase() !== drive.expectedEmail.toLowerCase()
-
   return (
     <div>
       <Title level={4} style={{ marginBottom: 20, color: '#2d2d2d' }}>Tổng quan</Title>
-
-      {/* Drive status */}
-      {drive && (
-        <div style={{ marginBottom: 16 }}>
-          {!drive.connected ? (
-            <Alert
-              type="warning"
-              icon={<WarningOutlined />}
-              showIcon
-              message="Drive chưa được kết nối"
-              description={
-                <span>
-                  Chưa có tài khoản Drive nào được ủy quyền.{' '}
-                  {drive.expectedEmail
-                    ? <>Đăng nhập bằng tài khoản <strong>{drive.expectedEmail}</strong> để kết nối.</>
-                    : 'Tài khoản đầu tiên đăng nhập sẽ được dùng làm kho lưu trữ.'}
-                  {' '}
-                  <Button size="small" type="link" icon={<LinkOutlined />} href="/api/auth/google" style={{ padding: 0 }}>
-                    Đăng nhập ngay
-                  </Button>
-                </span>
-              }
-              style={{ borderRadius: 8 }}
-            />
-          ) : driveWrong ? (
-            <Alert
-              type="error"
-              icon={<WarningOutlined />}
-              showIcon
-              message="Drive kết nối sai tài khoản"
-              description={
-                <span>
-                  Hiện đang dùng Drive của <strong>{drive.email}</strong> nhưng cần <strong>{drive.expectedEmail}</strong>.
-                  {' '}Tài khoản <strong>{drive.expectedEmail}</strong> cần đăng nhập lại để cập nhật token.
-                  <br />
-                  <Button size="small" type="link" icon={<LinkOutlined />} href="/api/auth/google" style={{ padding: 0 }}>
-                    Đăng nhập với tài khoản đúng
-                  </Button>
-                </span>
-              }
-              style={{ borderRadius: 8 }}
-            />
-          ) : (
-            <Alert
-              type="success"
-              icon={<CheckCircleOutlined />}
-              showIcon
-              message={
-                <span>
-                  Drive đang kết nối: <strong>{drive.email}</strong>
-                  {drive.expectedEmail && drive.email?.toLowerCase() === drive.expectedEmail.toLowerCase() && (
-                    <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>(tài khoản được chỉ định)</Text>
-                  )}
-                </span>
-              }
-              style={{ borderRadius: 8 }}
-            />
-          )}
-        </div>
-      )}
 
       {/* Site public toggle */}
       <Card

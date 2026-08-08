@@ -26,6 +26,7 @@ interface GoogleUserInfo {
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url)
   const code = url.searchParams.get('code')
+  const stateNext = url.searchParams.get('state') ?? ''  // safe internal redirect path
 
   if (!code) {
     return new Response('Missing authorization code', { status: 400 })
@@ -102,10 +103,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   await env.SESSIONS.put(`session:${sessionId}`, sessionData, { expirationTtl: 86400 * 7 }) // 7 days
 
+  const redirectTo = stateNext.startsWith('/') ? stateNext : '/admin'
+
   return new Response(null, {
     status: 302,
     headers: {
-      Location: '/admin',
+      Location: redirectTo,
       'Set-Cookie': `session_id=${sessionId}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${86400 * 7}`,
     },
   })

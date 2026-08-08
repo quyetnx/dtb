@@ -19,6 +19,7 @@ const NgheThuatPage = lazy(() => import('./pages/admin/NgheThuatPage'))
 const HinhAnhPage = lazy(() => import('./pages/admin/HinhAnhPage'))
 const AdminVideoPage = lazy(() => import('./pages/admin/VideoPage'))
 const ContentFormPage = lazy(() => import('./pages/admin/ContentFormPage'))
+const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 
 const VAN_XUOI_CATS = ['Tiểu thuyết', 'Truyện ngắn', 'Hồi ký', 'Tùy bút', 'Ký sự']
 const NGHE_THUAT_CATS = ['Phê bình văn học', 'Nghệ thuật', 'Âm nhạc', 'Văn hóa', 'Mỹ thuật', 'Kiến trúc']
@@ -144,6 +145,14 @@ export default function App() {
             element={
               <Suspense fallback={<AdminSpinner />}>
                 <AdminVideoPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <SettingsPage />
               </Suspense>
             }
           />

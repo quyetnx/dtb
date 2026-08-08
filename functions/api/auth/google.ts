@@ -20,5 +20,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   authUrl.searchParams.set('access_type', 'offline')
   authUrl.searchParams.set('prompt', 'consent')
 
+  // Optional ?next= param — encode safe internal path as state so callback can redirect there
+  const next = url.searchParams.get('next') ?? ''
+  if (next.startsWith('/')) authUrl.searchParams.set('state', next)
+
   return Response.redirect(authUrl.toString(), 302)
 }
