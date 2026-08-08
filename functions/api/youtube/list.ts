@@ -17,12 +17,6 @@ interface SearchItem {
   }
 }
 
-interface YTSearchResponse {
-  items: SearchItem[]
-  nextPageToken?: string
-  prevPageToken?: string
-}
-
 interface VideoItem {
   id: string
   title: string
@@ -36,7 +30,6 @@ interface CachedPage {
   items: VideoItem[]
   nextPageToken: string | null
   prevPageToken: string | null
-  fetchedAt: number
 }
 
 async function resolveChannelId(handle: string, apiKey: string): Promise<string> {
@@ -54,12 +47,19 @@ async function resolveChannelId(handle: string, apiKey: string): Promise<string>
   return channelId
 }
 
-async function getPublishedIds(env: Env): Promise<Set<string>> {
-  const data = await env.SESSIONS.get('youtube:published', { type: 'json' }) as { ids: string[] } | null
-  return new Set(data?.ids ?? [])
+// Simple hash of published IDs → part of cache key so CDN auto-busts when list changes
+function hashPublished(ids: string[]): string {
+  const str = [...ids].sort().join(',')
+  let h = 5381
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0
+  return h.toString(36)
 }
 
-// Fetch from YouTube and cache result in KV for 5 minutes
+async function getPublishedIds(env: Env): Promise<string[]> {
+  const data = await env.SESSIONS.get('youtube:published', { type: 'json' }) as { ids: string[] } | null
+  return data?.ids ?? []
+}
+
 async function fetchFromYouTube(
   channelId: string,
   maxResults: string,
@@ -67,10 +67,12 @@ async function fetchFromYouTube(
   pageToken: string,
   apiKey: string,
   env: Env,
+  cacheKey: string,
+  filterFn: (items: VideoItem[]) => VideoItem[],
 ): Promise<CachedPage | null> {
-  const cacheKey = `yt:list:${channelId}:${maxResults}:${q}:${pageToken}`
+  // Check KV cache first (1-hour TTL reduces KV writes to max 24/day per key)
   const cached = await env.SESSIONS.get(cacheKey, { type: 'json' }) as CachedPage | null
-  if (cached && Date.now() - cached.fetchedAt < 5 * 60 * 1000) return cached
+  if (cached) return cached
 
   const apiUrl = new URL('https://www.googleapis.com/youtube/v3/search')
   apiUrl.searchParams.set('part', 'snippet')
@@ -89,8 +91,8 @@ async function fetchFromYouTube(
     return null
   }
 
-  const data = (await res.json()) as YTSearchResponse
-  const items: VideoItem[] = (data.items ?? [])
+  const data = (await res.json()) as { items: SearchItem[]; nextPageToken?: string; prevPageToken?: string }
+  const allItems: VideoItem[] = (data.items ?? [])
     .filter((item) => item.id?.videoId)
     .map((item) => ({
       id: item.id.videoId,
@@ -102,18 +104,21 @@ async function fetchFromYouTube(
     }))
 
   const page: CachedPage = {
-    items,
+    items: filterFn(allItems),
     nextPageToken: data.nextPageToken ?? null,
     prevPageToken: data.prevPageToken ?? null,
-    fetchedAt: Date.now(),
   }
-  await env.SESSIONS.put(cacheKey, JSON.stringify(page), { expirationTtl: 600 })
+  // 1-hour TTL: max 24 KV writes/day per unique cache key (well within 1K free limit)
+  await env.SESSIONS.put(cacheKey, JSON.stringify(page), { expirationTtl: 3600 })
   return page
 }
 
 // GET /api/youtube/list
-// Public (default): filter to published IDs only; response not cached at edge
-// Admin (?admin=1): all videos, no publish filter; auth enforced in worker
+//
+// Public (default): only published videos, result cached in CDN 1 hour.
+//   Cache key includes hash of published IDs → CDN auto-busts on publish toggle.
+//
+// Admin (?admin=1, auth enforced in worker): all videos, private cache.
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   if (!env.YOUTUBE_API_KEY || !env.YOUTUBE_CHANNEL_ID) {
     return Response.json({ items: [], error: 'YOUTUBE_API_KEY or YOUTUBE_CHANNEL_ID not configured' })
@@ -134,26 +139,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ items: [], error: msg }, { status: 502 })
   }
 
-  const page = await fetchFromYouTube(channelId, maxResults, q, pageToken, env.YOUTUBE_API_KEY, env)
-  if (!page) {
-    return Response.json({ items: [], error: 'YouTube API error' }, { status: 502 })
+  if (isAdmin) {
+    // Admin: all videos, KV cache of raw YouTube response (no publish filter)
+    const cacheKey = `yt:raw:${channelId}:${maxResults}:${q}:${pageToken}`
+    const page = await fetchFromYouTube(channelId, maxResults, q, pageToken, env.YOUTUBE_API_KEY, env, cacheKey, (items) => items)
+    if (!page) return Response.json({ items: [], error: 'YouTube API error' }, { status: 502 })
+    return Response.json(page, { headers: { 'Cache-Control': 'private, no-store' } })
   }
 
-  let items = page.items
+  // Public: include published hash in cache key so CDN busts automatically on toggle
+  const publishedIds = await getPublishedIds(env)
+  const pubHash = hashPublished(publishedIds)
+  const publishedSet = new Set(publishedIds)
+  const cacheKey = `yt:pub:${channelId}:${maxResults}:${q}:${pageToken}:${pubHash}`
 
-  // Public mode: filter to published videos only
-  if (!isAdmin) {
-    const publishedIds = await getPublishedIds(env)
-    items = items.filter((v) => publishedIds.has(v.id))
-  }
-
-  // No public HTTP caching — published filter must always reflect current KV state
-  return Response.json(
-    {
-      items,
-      nextPageToken: page.nextPageToken,
-      prevPageToken: page.prevPageToken,
-    },
-    { headers: { 'Cache-Control': 'private, no-store' } },
+  const page = await fetchFromYouTube(
+    channelId, maxResults, q, pageToken, env.YOUTUBE_API_KEY, env, cacheKey,
+    (items) => items.filter((v) => publishedSet.has(v.id)),
   )
+  if (!page) return Response.json({ items: [], error: 'YouTube API error' }, { status: 502 })
+
+  // Cache at CDN for 1 hour — Worker only invoked on cache miss (~24 times/day max)
+  return Response.json(page, { headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=300' } })
 }

@@ -15,6 +15,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const type = url.searchParams.get('type')
   const isAdmin = url.searchParams.get('admin') === '1'
 
+  // Public listing: serve from KV cache (5 min) to avoid hitting Drive API every request
+  if (!isAdmin) {
+    const cacheKey = `drive:list:${folder ?? 'default'}:${type ?? 'all'}`
+    const cached = await env.SESSIONS.get(cacheKey, { type: 'json' })
+    if (cached) {
+      return Response.json(cached, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } })
+    }
+  }
+
   let token: string
   try {
     token = await getDriveToken(env)
@@ -47,11 +56,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const data = await res.json() as { files: { appProperties?: { status?: string } }[] }
 
-  if (!isAdmin) {
-    data.files = (data.files ?? []).filter(
-      (f) => f.appProperties?.status === 'published'
-    )
+  if (isAdmin) {
+    return Response.json(data, { headers: { 'Cache-Control': 'private, no-store' } })
   }
 
-  return Response.json(data)
+  // Filter to published only, then cache in KV for 5 min
+  data.files = (data.files ?? []).filter((f) => f.appProperties?.status === 'published')
+  const cacheKey = `drive:list:${folder ?? 'default'}:${type ?? 'all'}`
+  await env.SESSIONS.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 })
+
+  return Response.json(data, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } })
 }

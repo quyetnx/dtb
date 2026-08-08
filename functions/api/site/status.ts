@@ -8,7 +8,7 @@ const KV_KEY = 'site:public'
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   const val = await env.SESSIONS.get(KV_KEY)
-  return Response.json({ public: val === 'true' })
+  return Response.json({ public: val === 'true' }, { headers: { 'Cache-Control': 'public, max-age=300' } })
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
