@@ -18,6 +18,10 @@ const ThoPage = lazy(() => import('./pages/admin/ThoPage'))
 const NgheThuatPage = lazy(() => import('./pages/admin/NgheThuatPage'))
 const HinhAnhPage = lazy(() => import('./pages/admin/HinhAnhPage'))
 const AdminVideoPage = lazy(() => import('./pages/admin/VideoPage'))
+const ContentFormPage = lazy(() => import('./pages/admin/ContentFormPage'))
+
+const VAN_XUOI_CATS = ['Tiểu thuyết', 'Truyện ngắn', 'Hồi ký', 'Tùy bút', 'Ký sự']
+const NGHE_THUAT_CATS = ['Phê bình văn học', 'Nghệ thuật', 'Âm nhạc', 'Văn hóa', 'Mỹ thuật', 'Kiến trúc']
 
 function AdminSpinner() {
   return (
@@ -69,25 +73,61 @@ export default function App() {
           />
           <Route
             path="van-xuoi"
+            element={<Suspense fallback={<AdminSpinner />}><VanXuoiPage /></Suspense>}
+          />
+          <Route
+            path="van-xuoi/new"
             element={
               <Suspense fallback={<AdminSpinner />}>
-                <VanXuoiPage />
+                <ContentFormPage contentType="van-xuoi" pageTitle="Văn xuôi" backPath="/admin/van-xuoi" categoryOptions={VAN_XUOI_CATS} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="van-xuoi/:id"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <ContentFormPage contentType="van-xuoi" pageTitle="Văn xuôi" backPath="/admin/van-xuoi" categoryOptions={VAN_XUOI_CATS} />
               </Suspense>
             }
           />
           <Route
             path="tho"
+            element={<Suspense fallback={<AdminSpinner />}><ThoPage /></Suspense>}
+          />
+          <Route
+            path="tho/new"
             element={
               <Suspense fallback={<AdminSpinner />}>
-                <ThoPage />
+                <ContentFormPage contentType="tho" pageTitle="Thơ" backPath="/admin/tho" />
+              </Suspense>
+            }
+          />
+          <Route
+            path="tho/:id"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <ContentFormPage contentType="tho" pageTitle="Thơ" backPath="/admin/tho" />
               </Suspense>
             }
           />
           <Route
             path="nghe-thuat"
+            element={<Suspense fallback={<AdminSpinner />}><NgheThuatPage /></Suspense>}
+          />
+          <Route
+            path="nghe-thuat/new"
             element={
               <Suspense fallback={<AdminSpinner />}>
-                <NgheThuatPage />
+                <ContentFormPage contentType="nghe-thuat" pageTitle="Nghệ thuật" backPath="/admin/nghe-thuat" categoryOptions={NGHE_THUAT_CATS} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="nghe-thuat/:id"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <ContentFormPage contentType="nghe-thuat" pageTitle="Nghệ thuật" backPath="/admin/nghe-thuat" categoryOptions={NGHE_THUAT_CATS} />
               </Suspense>
             }
           />

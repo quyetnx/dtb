@@ -7,6 +7,7 @@ export default function VanXuoiPage() {
     <ContentListPage
       title="Văn xuôi & Hồi ký"
       contentType="van-xuoi"
+      basePath="/admin/van-xuoi"
       categoryOptions={CATEGORIES}
     />
   )

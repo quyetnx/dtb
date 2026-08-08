@@ -2,7 +2,7 @@ import type { PagesFunction } from '@cloudflare/workers-types'
 import { getDriveToken } from './_token'
 
 interface Env {
-  GOOGLE_DRIVE_FOLDER_ID: string
+  GOOGLE_DRIVE_FOLDER_ID?: string
   SESSIONS: KVNamespace
   GOOGLE_CLIENT_ID: string
   GOOGLE_CLIENT_SECRET: string
@@ -17,11 +17,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const token = await getDriveToken(env)
 
-  const metadata = {
-    name,
-    parents: [env.GOOGLE_DRIVE_FOLDER_ID],
-    mimeType: file.type,
-  }
+  const metadata: Record<string, unknown> = { name, mimeType: file.type }
+  if (env.GOOGLE_DRIVE_FOLDER_ID) metadata.parents = [env.GOOGLE_DRIVE_FOLDER_ID]
 
   const body = new FormData()
   body.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))

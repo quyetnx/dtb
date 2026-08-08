@@ -21,7 +21,7 @@ interface Env {
   GOOGLE_CLIENT_SECRET: string
   ADMIN_EMAILS: string
   SESSION_SECRET: string
-  GOOGLE_DRIVE_FOLDER_ID: string
+  GOOGLE_DRIVE_FOLDER_ID?: string
   YOUTUBE_API_KEY: string
   YOUTUBE_CHANNEL_ID: string
 }

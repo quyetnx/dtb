@@ -7,6 +7,7 @@ export default function NgheThuatPage() {
     <ContentListPage
       title="Nghệ thuật & Văn hóa"
       contentType="nghe-thuat"
+      basePath="/admin/nghe-thuat"
       categoryOptions={CATEGORIES}
     />
   )

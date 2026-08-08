@@ -5,6 +5,7 @@ export default function ThoPage() {
     <ContentListPage
       title="Thơ"
       contentType="tho"
+      basePath="/admin/tho"
     />
   )
 }
