@@ -17,5 +17,5 @@ preview_id = "8b74b3f70df74181b7a636a7c097a9c8"
 # Non-sensitive config — secrets (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
 # SESSION_SECRET, GOOGLE_SERVICE_ACCOUNT_KEY) must be set via Cloudflare dashboard
 [vars]
-ADMIN_EMAILS = "quyetnx.dev@gmail.com"
+ADMIN_EMAILS = "quyetnxhn@gmail.com"
 GOOGLE_DRIVE_FOLDER_ID = "1TFawaoVw2FLssh4B"
