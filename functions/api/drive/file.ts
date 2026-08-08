@@ -14,7 +14,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const fileId = url.searchParams.get('id')
   if (!fileId) return Response.json({ error: 'Missing id' }, { status: 400 })
 
-  const token = await getDriveToken(env)
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
+  }
 
   const [contentRes, metaRes] = await Promise.all([
     fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
@@ -25,7 +30,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     }),
   ])
 
-  if (!contentRes.ok) return Response.json({ error: 'File not found' }, { status: 404 })
+  if (!contentRes.ok) {
+    const detail = await contentRes.text()
+    console.error('[drive/file] GET content failed', contentRes.status, detail)
+    return Response.json({ error: 'Không tìm thấy file', detail }, { status: 404 })
+  }
 
   const content = await contentRes.text()
   const meta = metaRes.ok ? await metaRes.json() : {}
@@ -41,7 +50,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     appProperties?: Record<string, string>
   }
 
-  const token = await getDriveToken(env)
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
+  }
+
   const folderId = body.folder ?? env.GOOGLE_DRIVE_FOLDER_ID ?? ''
 
   const metadata: Record<string, unknown> = {
@@ -63,7 +78,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!res.ok) {
     const err = await res.text()
     console.error('[drive/file] POST failed', res.status, err)
-    return Response.json({ error: 'Upload failed', detail: err }, { status: 500 })
+    return Response.json({ error: 'Tạo file thất bại', detail: err }, { status: 500 })
   }
 
   return Response.json(await res.json(), { status: 201 })
@@ -81,22 +96,37 @@ export const onRequestPatch: PagesFunction<Env> = async ({ request, env }) => {
     appProperties?: Record<string, string>
   }
 
-  const token = await getDriveToken(env)
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
+  }
 
   if (body.name || body.appProperties) {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
+    const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: body.name, appProperties: body.appProperties }),
     })
+    if (!metaRes.ok) {
+      const err = await metaRes.text()
+      console.error('[drive/file] PATCH meta failed', metaRes.status, err)
+      return Response.json({ error: 'Cập nhật metadata thất bại', detail: err }, { status: 500 })
+    }
   }
 
   if (body.content !== undefined) {
-    await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&supportsAllDrives=true`, {
+    const contentRes = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&supportsAllDrives=true`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'text/plain' },
       body: body.content,
     })
+    if (!contentRes.ok) {
+      const err = await contentRes.text()
+      console.error('[drive/file] PATCH content failed', contentRes.status, err)
+      return Response.json({ error: 'Cập nhật nội dung thất bại', detail: err }, { status: 500 })
+    }
   }
 
   return Response.json({ success: true })
@@ -108,11 +138,22 @@ export const onRequestDelete: PagesFunction<Env> = async ({ request, env }) => {
   const fileId = url.searchParams.get('id')
   if (!fileId) return Response.json({ error: 'Missing id' }, { status: 400 })
 
-  const token = await getDriveToken(env)
-  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/trash`, {
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
+  }
+
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/trash`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   })
+  if (!res.ok) {
+    const err = await res.text()
+    console.error('[drive/file] DELETE failed', res.status, err)
+    return Response.json({ error: 'Xóa file thất bại', detail: err }, { status: 500 })
+  }
 
   return Response.json({ success: true })
 }

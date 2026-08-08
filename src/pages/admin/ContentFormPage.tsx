@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Button, Col, DatePicker, Divider, Form, Input,
+  Alert, Button, Col, DatePicker, Divider, Form, Input,
   message, Row, Select, Space, Spin, Switch, Typography, Upload,
 } from 'antd'
 import {
   ArrowLeftOutlined, DeleteOutlined, FileWordOutlined,
-  PictureOutlined, SaveOutlined, UploadOutlined,
+  PictureOutlined, SaveOutlined, SettingOutlined, UploadOutlined,
 } from '@ant-design/icons'
 import MDEditor from '@uiw/react-md-editor'
 import '@uiw/react-md-editor/markdown-editor.css'
@@ -34,6 +34,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   const isNew = !id
 
   const [loading, setLoading] = useState(!isNew)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [content, setContent] = useState('')
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
@@ -46,11 +47,12 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   useEffect(() => {
     if (isNew) { form.setFieldsValue({ status: false }); return }
     setLoading(true)
-    fetch(`/api/drive/file?id=${id}`)
+    setLoadError(null)
+    apiFetch(`/api/drive/file?id=${id}`)
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: Record<string, unknown> & { appProperties?: Record<string, string>; content?: string; name?: string }) => {
         form.setFieldsValue({
-          name: (data.name as string)?.replace(/\.md$/, '') ?? '',
+          name: data.name?.replace(/\.md$/, '') ?? '',
           category: data.appProperties?.category,
           status: data.appProperties?.status === 'published',
           publishDate: data.appProperties?.publishDate ? dayjs(data.appProperties.publishDate) : undefined,
@@ -58,9 +60,23 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         setContent(data.content ?? '')
         setCoverImageId(data.appProperties?.coverImageId ?? null)
       })
-      .catch(() => msg.error('Không thể tải nội dung'))
+      .catch((e: Error) => setLoadError(e.message || 'Không thể tải nội dung'))
       .finally(() => setLoading(false))
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const apiFetch = async (url: string, opts?: RequestInit) => {
+    const res = await fetch(url, opts)
+    if (!res.ok) {
+      if (res.status === 401) { window.location.href = '/admin/login'; throw new Error('Unauthorized') }
+      let errMsg = `Lỗi ${res.status}`
+      try {
+        const body = await res.json() as { error?: string; detail?: string; message?: string }
+        errMsg = body.error ?? body.message ?? body.detail ?? errMsg
+      } catch { /* ignore parse error */ }
+      throw new Error(errMsg)
+    }
+    return res
+  }
 
   const handleCoverUpload = async (file: File) => {
     setCoverUploading(true)
@@ -68,12 +84,11 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
       const fd = new FormData()
       fd.append('file', file)
       fd.append('name', file.name)
-      const res = await fetch('/api/drive/upload-image', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error()
+      const res = await apiFetch('/api/drive/upload-image', { method: 'POST', body: fd })
       const data = await res.json() as { id: string }
       setCoverImageId(data.id)
       msg.success('Đã tải ảnh')
-    } catch { msg.error('Không thể tải ảnh') }
+    } catch (e) { msg.error((e as Error).message || 'Không thể tải ảnh') }
     finally { setCoverUploading(false) }
   }
 
@@ -106,14 +121,14 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
 
     try {
       if (!isNew && id) {
-        await fetch(`/api/drive/file?id=${id}`, {
+        await apiFetch(`/api/drive/file?id=${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: `${values.name}.md`, content, appProperties }),
         })
         msg.success('Đã lưu')
       } else {
-        await fetch('/api/drive/file', {
+        await apiFetch('/api/drive/file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: `${values.name}.md`, content, appProperties }),
@@ -121,7 +136,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         msg.success('Đã tạo bài')
         navigate(backPath)
       }
-    } catch { msg.error('Lưu thất bại') }
+    } catch (e) { msg.error((e as Error).message || 'Lưu thất bại') }
     finally { setSaving(false) }
   }
 
@@ -130,6 +145,26 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
       <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
         <Spin size="large" />
       </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message="Không thể tải nội dung"
+        description={
+          <span>
+            {loadError}{' '}
+            {loadError.includes('kết nối') && (
+              <a href="/admin/settings"><SettingOutlined /> Vào Cài đặt để kết nối Drive</a>
+            )}
+          </span>
+        }
+        action={<Button onClick={() => navigate(backPath)}>Quay lại</Button>}
+        style={{ maxWidth: 560 }}
+      />
     )
   }
 

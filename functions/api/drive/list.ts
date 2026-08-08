@@ -14,7 +14,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const type = url.searchParams.get('type')
   const isAdmin = url.searchParams.get('admin') === '1'
 
-  const token = await getDriveToken(env)
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.', files: [] }, { status: 503 })
+  }
 
   const mimeFilter = type === 'image'
     ? "mimeType contains 'image/'"

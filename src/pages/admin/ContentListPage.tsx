@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Button, Table, Typography, Space, Tag, message, Popconfirm, Spin, Switch, Tooltip,
+  Alert, Button, Table, Typography, Space, Tag, message, Popconfirm, Spin, Switch, Tooltip,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, LockOutlined, UnlockOutlined, SettingOutlined } from '@ant-design/icons'
 import type { TableColumnsType } from 'antd'
 
 const { Title } = Typography
@@ -31,11 +31,27 @@ interface ContentListPageProps {
 export default function ContentListPage({ title, contentType, basePath, categoryOptions }: ContentListPageProps) {
   const [files, setFiles] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [driveError, setDriveError] = useState<string | null>(null)
   const navigate = useNavigate()
   const [msg, ctxHolder] = message.useMessage()
 
+  const apiFetch = async (url: string, opts?: RequestInit) => {
+    const res = await fetch(url, opts)
+    if (!res.ok) {
+      if (res.status === 401) { navigate('/admin/login'); throw new Error('Unauthorized') }
+      let errMsg = `Lỗi ${res.status}`
+      try {
+        const body = await res.json() as { error?: string }
+        errMsg = body.error ?? errMsg
+      } catch { /* ignore */ }
+      throw new Error(errMsg)
+    }
+    return res
+  }
+
   const load = () => {
     setLoading(true)
+    setDriveError(null)
     fetch('/api/drive/list?admin=1')
       .then((r) => {
         if (r.status === 401) { navigate('/admin/login'); return null }
@@ -43,29 +59,40 @@ export default function ContentListPage({ title, contentType, basePath, category
       })
       .then((data) => {
         if (!data) return
-        if (data.error) { msg.error(`Lỗi Drive: ${data.error}`); return }
+        if (data.error) {
+          setDriveError(data.error)
+          return
+        }
         const all: FileItem[] = data.files ?? []
         setFiles(all.filter((f) => f.appProperties?.type === contentType))
       })
-      .catch(() => msg.error('Không thể tải danh sách'))
+      .catch(() => setDriveError('Không thể kết nối, kiểm tra lại mạng'))
       .finally(() => setLoading(false))
   }
 
   const toggleStatus = async (file: FileItem) => {
     const next = file.appProperties?.status === 'published' ? 'draft' : 'published'
-    await fetch(`/api/drive/file?id=${file.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ appProperties: { ...file.appProperties, status: next } }),
-    })
-    msg.success(next === 'published' ? 'Đã công bố' : 'Đã đặt nháp')
-    load()
+    try {
+      await apiFetch(`/api/drive/file?id=${file.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appProperties: { ...file.appProperties, status: next } }),
+      })
+      msg.success(next === 'published' ? 'Đã công bố' : 'Đã đặt nháp')
+      load()
+    } catch (e) {
+      msg.error((e as Error).message || 'Cập nhật thất bại')
+    }
   }
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/drive/file?id=${id}`, { method: 'DELETE' })
-    msg.success('Đã xóa')
-    load()
+    try {
+      await apiFetch(`/api/drive/file?id=${id}`, { method: 'DELETE' })
+      msg.success('Đã xóa')
+      load()
+    } catch (e) {
+      msg.error((e as Error).message || 'Xóa thất bại')
+    }
   }
 
   useEffect(() => { load() }, [contentType]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -181,6 +208,23 @@ export default function ContentListPage({ title, contentType, basePath, category
           Thêm mới
         </Button>
       </div>
+
+      {driveError && (
+        <Alert
+          type="error"
+          showIcon
+          message="Không thể kết nối Drive"
+          description={
+            <span>
+              {driveError}{' '}
+              <a href="/admin/settings">
+                <SettingOutlined /> Vào Cài đặt để kết nối Drive
+              </a>
+            </span>
+          }
+          style={{ marginBottom: 16 }}
+        />
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 48 }}><Spin /></div>

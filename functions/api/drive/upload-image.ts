@@ -15,7 +15,12 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   if (!file) return Response.json({ error: 'No file' }, { status: 400 })
 
-  const token = await getDriveToken(env)
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    return Response.json({ error: 'Drive chưa được kết nối. Vào Cài đặt để kết nối Drive.' }, { status: 503 })
+  }
 
   const metadata: Record<string, unknown> = { name, mimeType: file.type }
   if (env.GOOGLE_DRIVE_FOLDER_ID) metadata.parents = [env.GOOGLE_DRIVE_FOLDER_ID]
