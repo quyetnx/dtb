@@ -40,6 +40,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
   const [coverUploading, setCoverUploading] = useState(false)
   const [docxImporting, setDocxImporting] = useState(false)
+  const [contentFormat, setContentFormat] = useState<'markdown' | 'html'>('markdown')
   const docxInputRef = useRef<HTMLInputElement>(null)
   const [form] = Form.useForm<FormValues>()
   const [msg, ctxHolder] = message.useMessage()
@@ -58,6 +59,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
           publishDate: data.appProperties?.publishDate ? dayjs(data.appProperties.publishDate) : undefined,
         })
         setContent(data.content ?? '')
+        setContentFormat((data.appProperties?.contentFormat as 'markdown' | 'html') ?? 'markdown')
         setCoverImageId(data.appProperties?.coverImageId ?? null)
       })
       .catch((e: Error) => setLoadError(e.message || 'Không thể tải nội dung'))
@@ -99,9 +101,14 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
     setDocxImporting(true)
     try {
       const mammoth = await import('mammoth')
-      const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
+      const arrayBuffer = await file.arrayBuffer()
+      const result = await mammoth.convertToHtml(
+        { arrayBuffer },
+        { convertImage: mammoth.images.dataUri },
+      )
       setContent(result.value.trim())
-      msg.success('Đã nhập nội dung từ DOCX')
+      setContentFormat('html')
+      msg.success('Đã nhập nội dung từ DOCX (giữ nguyên ảnh và định dạng)')
     } catch { msg.error('Không thể đọc file DOCX') }
     finally {
       setDocxImporting(false)
@@ -117,6 +124,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
     const appProperties: Record<string, string> = {
       type: contentType,
       status: values.status ? 'published' : 'draft',
+      contentFormat,
     }
     if (values.category) appProperties.category = values.category
     if (coverImageId) appProperties.coverImageId = coverImageId
@@ -244,26 +252,59 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: 8,
               }}>
-                <Text style={{ fontSize: 13, fontWeight: 500 }}>Nội dung</Text>
-                <Button
-                  size="small"
-                  icon={<FileWordOutlined />}
-                  loading={docxImporting}
-                  onClick={() => docxInputRef.current?.click()}
-                >
-                  Nhập từ DOCX
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 13, fontWeight: 500 }}>Nội dung</Text>
+                  {contentFormat === 'html' && (
+                    <span style={{
+                      fontSize: 11,
+                      padding: '1px 6px',
+                      borderRadius: 4,
+                      background: '#e6f4ff',
+                      color: '#1677ff',
+                      border: '1px solid #91caff',
+                    }}>HTML · từ DOCX</span>
+                  )}
+                </div>
+                <Space size="small">
+                  {contentFormat === 'html' && (
+                    <Button
+                      size="small"
+                      onClick={() => { setContentFormat('markdown'); setContent('') }}
+                    >
+                      Chuyển sang Markdown
+                    </Button>
+                  )}
+                  <Button
+                    size="small"
+                    icon={<FileWordOutlined />}
+                    loading={docxImporting}
+                    onClick={() => docxInputRef.current?.click()}
+                  >
+                    {contentFormat === 'html' ? 'Nhập lại DOCX' : 'Nhập từ DOCX'}
+                  </Button>
+                </Space>
               </div>
-              <div data-color-mode="light">
-                <MDEditor
-                  value={content}
-                  onChange={(val) => setContent(val ?? '')}
-                  height={520}
-                  preview="live"
-                  style={{ borderRadius: 0, border: 'none' }}
-                />
-              </div>
+              {contentFormat === 'html' ? (
+                <div style={{ padding: 20, minHeight: 520, maxHeight: 720, overflowY: 'auto' }}>
+                  <div
+                    className="prose-content"
+                    dangerouslySetInnerHTML={{ __html: content }}
+                    style={{ fontSize: 14, lineHeight: 1.8 }}
+                  />
+                </div>
+              ) : (
+                <div data-color-mode="light">
+                  <MDEditor
+                    value={content}
+                    onChange={(val) => setContent(val ?? '')}
+                    height={520}
+                    preview="live"
+                    style={{ borderRadius: 0, border: 'none' }}
+                  />
+                </div>
+              )}
             </div>
           </Col>
 

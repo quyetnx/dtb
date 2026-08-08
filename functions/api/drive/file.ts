@@ -72,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ content, format: 'html', ...meta })
   }
 
-  // Plain text / markdown
+  // Plain text / markdown (or HTML saved from DOCX import)
   const contentRes = await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
     { headers: { Authorization: `Bearer ${token}` } },
@@ -83,7 +83,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ error: 'Không tìm thấy file', detail }, { status: 404 })
   }
   const content = await contentRes.text()
-  return Response.json({ content, format: 'markdown', ...meta })
+  const storedFormat = (meta.appProperties as Record<string, string> | null)?.contentFormat
+  const format = storedFormat === 'html' ? 'html' : 'markdown'
+  return Response.json({ content, format, ...meta })
 }
 
 // POST /api/drive/file — create new file
