@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Button, Form, Input, Switch, DatePicker, Space, Typography,
-  Spin, message, Upload, Divider, Select,
+  Button, Col, DatePicker, Divider, Form, Input,
+  message, Row, Select, Space, Spin, Switch, Typography, Upload,
 } from 'antd'
 import {
-  ArrowLeftOutlined, SaveOutlined, UploadOutlined,
-  FileWordOutlined, PictureOutlined, DeleteOutlined,
+  ArrowLeftOutlined, DeleteOutlined, FileWordOutlined,
+  PictureOutlined, SaveOutlined, UploadOutlined,
 } from '@ant-design/icons'
 import MDEditor from '@uiw/react-md-editor'
 import '@uiw/react-md-editor/markdown-editor.css'
 import dayjs from 'dayjs'
 
-const { Title, Text } = Typography
+const { Text } = Typography
 
-interface ContentFormPageProps {
+interface Props {
   contentType: string
   pageTitle: string
   backPath: string
@@ -28,12 +28,7 @@ interface FormValues {
   publishDate?: dayjs.Dayjs
 }
 
-export default function ContentFormPage({
-  contentType,
-  pageTitle,
-  backPath,
-  categoryOptions,
-}: ContentFormPageProps) {
+export default function ContentFormPage({ contentType, pageTitle, backPath, categoryOptions }: Props) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isNew = !id
@@ -49,21 +44,16 @@ export default function ContentFormPage({
   const [msg, ctxHolder] = message.useMessage()
 
   useEffect(() => {
-    if (isNew) {
-      form.setFieldsValue({ status: false })
-      return
-    }
+    if (isNew) { form.setFieldsValue({ status: false }); return }
     setLoading(true)
     fetch(`/api/drive/file?id=${id}`)
       .then((r) => r.json())
       .then((data) => {
         form.setFieldsValue({
           name: (data.name as string)?.replace(/\.md$/, '') ?? '',
-          category: data.appProperties?.category ?? '',
+          category: data.appProperties?.category,
           status: data.appProperties?.status === 'published',
-          publishDate: data.appProperties?.publishDate
-            ? dayjs(data.appProperties.publishDate)
-            : undefined,
+          publishDate: data.appProperties?.publishDate ? dayjs(data.appProperties.publishDate) : undefined,
         })
         setContent(data.content ?? '')
         setCoverImageId(data.appProperties?.coverImageId ?? null)
@@ -82,25 +72,20 @@ export default function ContentFormPage({
       if (!res.ok) throw new Error()
       const data = await res.json() as { id: string }
       setCoverImageId(data.id)
-      msg.success('Đã tải ảnh đại diện')
-    } catch {
-      msg.error('Không thể tải ảnh, thử lại')
-    } finally {
-      setCoverUploading(false)
-    }
+      msg.success('Đã tải ảnh')
+    } catch { msg.error('Không thể tải ảnh') }
+    finally { setCoverUploading(false) }
   }
 
   const handleDocxImport = async (file: File) => {
     setDocxImporting(true)
     try {
       const mammoth = await import('mammoth')
-      const buffer = await file.arrayBuffer()
-      const result = await mammoth.extractRawText({ arrayBuffer: buffer })
+      const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
       setContent(result.value.trim())
       msg.success('Đã nhập nội dung từ DOCX')
-    } catch {
-      msg.error('Không thể đọc file DOCX')
-    } finally {
+    } catch { msg.error('Không thể đọc file DOCX') }
+    finally {
       setDocxImporting(false)
       if (docxInputRef.current) docxInputRef.current.value = ''
     }
@@ -119,34 +104,25 @@ export default function ContentFormPage({
     if (coverImageId) appProperties.coverImageId = coverImageId
     if (values.publishDate) appProperties.publishDate = values.publishDate.toISOString()
 
-    const payload = {
-      name: `${values.name}.md`,
-      content,
-      appProperties,
-    }
-
     try {
       if (!isNew && id) {
         await fetch(`/api/drive/file?id=${id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ name: `${values.name}.md`, content, appProperties }),
         })
-        msg.success('Đã cập nhật')
+        msg.success('Đã lưu')
       } else {
         await fetch('/api/drive/file', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ name: `${values.name}.md`, content, appProperties }),
         })
-        msg.success('Đã tạo mới')
+        msg.success('Đã tạo bài')
         navigate(backPath)
       }
-    } catch {
-      msg.error('Lưu thất bại')
-    } finally {
-      setSaving(false)
-    }
+    } catch { msg.error('Lưu thất bại') }
+    finally { setSaving(false) }
   }
 
   if (loading) {
@@ -158,216 +134,178 @@ export default function ContentFormPage({
   }
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+    <div>
       {ctxHolder}
       <input
         ref={docxInputRef}
         type="file"
         accept=".docx"
         style={{ display: 'none' }}
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          if (f) handleDocxImport(f)
-        }}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleDocxImport(f) }}
       />
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+      {/* Sticky action bar */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 20,
+        padding: '10px 16px',
+        background: 'white',
+        borderRadius: 8,
+        border: '1px solid #ebebeb',
+        flexWrap: 'wrap',
+      }}>
         <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(backPath)}>
           {pageTitle}
         </Button>
-        <Title level={4} style={{ margin: 0, flex: 1 }}>
-          {isNew ? 'Thêm bài mới' : 'Chỉnh sửa bài viết'}
-        </Title>
+        <div style={{ flex: 1, minWidth: 80 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {isNew ? 'Bài viết mới' : 'Chỉnh sửa'}
+          </Text>
+        </div>
         <Button
           type="primary"
           icon={<SaveOutlined />}
           loading={saving}
           onClick={handleSave}
-          style={{ background: '#5d2e2e', borderColor: '#5d2e2e' }}
+          style={{ background: '#7c3535', borderColor: '#7c3535' }}
         >
           {isNew ? 'Tạo bài' : 'Lưu'}
         </Button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 24, alignItems: 'start' }}>
-        {/* Left: title + content */}
-        <div>
-          <Form form={form} layout="vertical">
-            <Form.Item
-              name="name"
-              label="Tiêu đề"
-              rules={[{ required: true, message: 'Bắt buộc nhập tiêu đề' }]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                placeholder="Tên bài viết..."
-                size="large"
-                style={{ fontSize: 18, fontWeight: 500 }}
-              />
-            </Form.Item>
-          </Form>
-
-          {/* WYSIWYG Editor */}
-          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>Nội dung (Markdown)</Text>
-            <Button
-              size="small"
-              icon={<FileWordOutlined />}
-              loading={docxImporting}
-              onClick={() => docxInputRef.current?.click()}
-            >
-              Nhập từ DOCX
-            </Button>
-          </div>
-          <div data-color-mode="light">
-            <MDEditor
-              value={content}
-              onChange={(val) => setContent(val ?? '')}
-              height={560}
-              preview="live"
-            />
-          </div>
-        </div>
-
-        {/* Right: sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {/* Publish settings */}
-          <div
-            style={{
-              background: '#fff',
-              border: '1px solid #e8e8e8',
-              borderRadius: 8,
-              padding: '16px',
-              marginBottom: 16,
-            }}
-          >
-            <Text strong style={{ fontSize: 13 }}>Xuất bản</Text>
-            <Divider style={{ margin: '10px 0' }} />
-            <Form form={form} layout="vertical">
-              <Form.Item name="status" label="Trạng thái" valuePropName="checked" style={{ marginBottom: 12 }}>
-                <Switch
-                  checkedChildren="Công bố"
-                  unCheckedChildren="Nháp"
+      <Form form={form} layout="vertical">
+        <Row gutter={[16, 16]}>
+          {/* ─── Main column ─────────────────────────────── */}
+          <Col xs={24} lg={17}>
+            {/* Title */}
+            <div style={{ background: 'white', borderRadius: 8, padding: '16px', marginBottom: 16, border: '1px solid #ebebeb' }}>
+              <Form.Item
+                name="name"
+                label="Tiêu đề"
+                rules={[{ required: true, message: 'Bắt buộc nhập tiêu đề' }]}
+                style={{ marginBottom: 0 }}
+              >
+                <Input
+                  placeholder="Nhập tiêu đề bài viết..."
+                  size="large"
+                  style={{ fontWeight: 600 }}
                 />
+              </Form.Item>
+            </div>
+
+            {/* Editor */}
+            <div style={{ background: 'white', borderRadius: 8, border: '1px solid #ebebeb', overflow: 'hidden' }}>
+              <div style={{
+                padding: '10px 16px',
+                borderBottom: '1px solid #ebebeb',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <Text style={{ fontSize: 13, fontWeight: 500 }}>Nội dung</Text>
+                <Button
+                  size="small"
+                  icon={<FileWordOutlined />}
+                  loading={docxImporting}
+                  onClick={() => docxInputRef.current?.click()}
+                >
+                  Nhập từ DOCX
+                </Button>
+              </div>
+              <div data-color-mode="light">
+                <MDEditor
+                  value={content}
+                  onChange={(val) => setContent(val ?? '')}
+                  height={520}
+                  preview="live"
+                  style={{ borderRadius: 0, border: 'none' }}
+                />
+              </div>
+            </div>
+          </Col>
+
+          {/* ─── Sidebar ─────────────────────────────────── */}
+          <Col xs={24} lg={7}>
+            {/* Publish */}
+            <div style={{ background: 'white', borderRadius: 8, padding: 16, marginBottom: 16, border: '1px solid #ebebeb' }}>
+              <Text strong style={{ fontSize: 13 }}>Xuất bản</Text>
+              <Divider style={{ margin: '10px 0' }} />
+              <Form.Item name="status" label="Trạng thái" valuePropName="checked" style={{ marginBottom: 12 }}>
+                <Switch checkedChildren="Công bố" unCheckedChildren="Nháp" />
               </Form.Item>
               <Form.Item name="publishDate" label="Ngày đăng" style={{ marginBottom: 0 }}>
                 <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày" />
               </Form.Item>
-            </Form>
-          </div>
+            </div>
 
-          {/* Category */}
-          {categoryOptions && (
-            <div
-              style={{
-                background: '#fff',
-                border: '1px solid #e8e8e8',
-                borderRadius: 8,
-                padding: '16px',
-                marginBottom: 16,
-              }}
-            >
-              <Text strong style={{ fontSize: 13 }}>Phân loại</Text>
-              <Divider style={{ margin: '10px 0' }} />
-              <Form form={form} layout="vertical">
+            {/* Category */}
+            {categoryOptions && (
+              <div style={{ background: 'white', borderRadius: 8, padding: 16, marginBottom: 16, border: '1px solid #ebebeb' }}>
+                <Text strong style={{ fontSize: 13 }}>Phân loại</Text>
+                <Divider style={{ margin: '10px 0' }} />
                 <Form.Item name="category" style={{ marginBottom: 0 }}>
                   <Select
                     placeholder="Chọn thể loại..."
                     allowClear
+                    style={{ width: '100%' }}
                     options={categoryOptions.map((o) => ({ value: o, label: o }))}
                   />
                 </Form.Item>
-              </Form>
-            </div>
-          )}
-
-          {/* Cover image */}
-          <div
-            style={{
-              background: '#fff',
-              border: '1px solid #e8e8e8',
-              borderRadius: 8,
-              padding: '16px',
-              marginBottom: 16,
-            }}
-          >
-            <Text strong style={{ fontSize: 13 }}>Ảnh đại diện</Text>
-            <Divider style={{ margin: '10px 0' }} />
-            {coverImageId ? (
-              <div>
-                <img
-                  src={`/api/drive/image?id=${coverImageId}`}
-                  alt="cover"
-                  style={{
-                    width: '100%',
-                    aspectRatio: '16/9',
-                    objectFit: 'cover',
-                    borderRadius: 4,
-                    marginBottom: 8,
-                  }}
-                />
-                <Space>
-                  <Upload
-                    accept="image/*"
-                    showUploadList={false}
-                    beforeUpload={(file) => { handleCoverUpload(file); return false }}
-                  >
-                    <Button size="small" icon={<PictureOutlined />} loading={coverUploading}>
-                      Đổi ảnh
-                    </Button>
-                  </Upload>
-                  <Button
-                    size="small"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => setCoverImageId(null)}
-                  >
-                    Xóa
-                  </Button>
-                </Space>
-                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 6, wordBreak: 'break-all' }}>
-                  ID: {coverImageId}
-                </Text>
               </div>
-            ) : (
-              <Upload
-                accept="image/*"
-                showUploadList={false}
-                beforeUpload={(file) => { handleCoverUpload(file); return false }}
-              >
-                <Button
-                  icon={<UploadOutlined />}
-                  loading={coverUploading}
-                  style={{ width: '100%' }}
-                >
-                  Tải ảnh lên
-                </Button>
-              </Upload>
             )}
-          </div>
 
-          {/* Image embed hint */}
-          {coverImageId && (
-            <div
-              style={{
-                background: '#fafafa',
-                border: '1px solid #e8e8e8',
-                borderRadius: 8,
-                padding: '12px 16px',
-              }}
-            >
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                Chèn ảnh vào nội dung:
-              </Text>
-              <br />
-              <code style={{ fontSize: 10, wordBreak: 'break-all', color: '#555' }}>
-                ![mô tả](/api/drive/image?id={coverImageId})
-              </code>
+            {/* Cover image */}
+            <div style={{ background: 'white', borderRadius: 8, padding: 16, border: '1px solid #ebebeb' }}>
+              <Text strong style={{ fontSize: 13 }}>Ảnh đại diện</Text>
+              <Divider style={{ margin: '10px 0' }} />
+              {coverImageId ? (
+                <>
+                  <img
+                    src={`/api/drive/image?id=${coverImageId}`}
+                    alt="cover"
+                    style={{
+                      width: '100%', aspectRatio: '16/9', objectFit: 'cover',
+                      borderRadius: 6, marginBottom: 10, display: 'block',
+                    }}
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                  <Space wrap>
+                    <Upload
+                      accept="image/*"
+                      showUploadList={false}
+                      beforeUpload={(file) => { handleCoverUpload(file); return false }}
+                    >
+                      <Button size="small" icon={<PictureOutlined />} loading={coverUploading}>Đổi ảnh</Button>
+                    </Upload>
+                    <Button size="small" danger icon={<DeleteOutlined />} onClick={() => setCoverImageId(null)}>
+                      Xóa
+                    </Button>
+                  </Space>
+                  <Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 8, wordBreak: 'break-all' }}>
+                    Markdown: <code>![alt](/api/drive/image?id={coverImageId})</code>
+                  </Text>
+                </>
+              ) : (
+                <Upload
+                  accept="image/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => { handleCoverUpload(file); return false }}
+                >
+                  <Button
+                    icon={<UploadOutlined />}
+                    loading={coverUploading}
+                    style={{ width: '100%' }}
+                  >
+                    Tải ảnh lên
+                  </Button>
+                </Upload>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </Col>
+        </Row>
+      </Form>
     </div>
   )
 }

@@ -13,18 +13,29 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const fileId = url.searchParams.get('id')
   if (!fileId) return new Response('Missing id', { status: 400 })
 
-  const token = await getDriveToken(env)
+  let token: string
+  try {
+    token = await getDriveToken(env)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[drive/image] token error:', msg)
+    return new Response('Drive not authorized', { status: 503 })
+  }
 
   const [metaRes, contentRes] = await Promise.all([
     fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=mimeType&supportsAllDrives=true`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
-    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`, {
       headers: { Authorization: `Bearer ${token}` },
     }),
   ])
 
-  if (!contentRes.ok) return new Response('Not found', { status: 404 })
+  if (!contentRes.ok) {
+    const errBody = await contentRes.text()
+    console.error('[drive/image] fetch failed', contentRes.status, errBody)
+    return new Response('Image not found', { status: 404 })
+  }
 
   const { mimeType } = metaRes.ok
     ? (await metaRes.json() as { mimeType: string })

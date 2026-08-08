@@ -37,8 +37,13 @@ export default function ContentListPage({ title, contentType, basePath, category
   const load = () => {
     setLoading(true)
     fetch('/api/drive/list?admin=1')
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) { navigate('/admin/login'); return null }
+        return r.json()
+      })
       .then((data) => {
+        if (!data) return
+        if (data.error) { msg.error(`Lỗi Drive: ${data.error}`); return }
         const all: FileItem[] = data.files ?? []
         setFiles(all.filter((f) => f.appProperties?.type === contentType))
       })
@@ -186,6 +191,7 @@ export default function ContentListPage({ title, contentType, basePath, category
           dataSource={files}
           pagination={{ pageSize: 20 }}
           size="middle"
+          scroll={{ x: 600 }}
           style={{ background: 'white', borderRadius: 8 }}
         />
       )}
