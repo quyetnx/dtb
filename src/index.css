@@ -1,13 +1,195 @@
 @import "tailwindcss";
 
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme {
+  /* Colors */
+  --color-paper-ivory: #faf9f5;
+  --color-paper-ivory-dark: #f2f0e8;
+  --color-oxblood: #5d2e2e;
+  --color-oxblood-light: #7a3f3f;
+  --color-oxblood-dim: #3e1e1e;
+  --color-charcoal: #2d2d2d;
+  --color-charcoal-light: #4a4a4a;
+  --color-charcoal-muted: #6b6b6b;
+  --color-muted-border: #e5e1d8;
+  --color-muted-border-light: #f0ede6;
+  --color-surface-card: #ffffff;
+  --color-surface-warm: #fdf8f0;
+
+  /* Typography */
+  --font-display: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --font-body: 'EB Garamond', Georgia, serif;
+  --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Spacing */
+  --spacing-section: 7.5rem;
+  --spacing-gutter: 2rem;
+  --spacing-container: 1120px;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@layer base {
+  html {
+    font-family: var(--font-body);
+    background-color: var(--color-paper-ivory);
+    color: var(--color-charcoal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+    font-weight: 500;
+  }
+
+  p {
+    line-height: 1.75;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-ui {
+    font-family: var(--font-ui);
+  }
+
+  .text-display-xl {
+    font-family: var(--font-display);
+    font-size: 3.5rem;
+    line-height: 1.1;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
+  .text-display-lg {
+    font-family: var(--font-display);
+    font-size: 2.75rem;
+    line-height: 1.15;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+  }
+
+  .text-display-md {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 1.25;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .text-display-sm {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+
+  .text-body-lg {
+    font-family: var(--font-body);
+    font-size: 1.125rem;
+    line-height: 1.8;
+  }
+
+  .text-body-md {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .text-label {
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .container-main {
+    max-width: var(--spacing-container);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: var(--spacing-gutter);
+    padding-right: var(--spacing-gutter);
+  }
+
+  .section-gap {
+    padding-top: var(--spacing-section);
+    padding-bottom: var(--spacing-section);
+  }
+
+  .divider-ornament {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--color-muted-border);
+  }
+
+  .divider-ornament::before,
+  .divider-ornament::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-muted-border);
+  }
+
+  .drop-cap::first-letter {
+    font-family: var(--font-display);
+    font-size: 4.5rem;
+    line-height: 0.8;
+    float: left;
+    margin-right: 0.125rem;
+    margin-top: 0.15rem;
+    color: var(--color-oxblood);
+    font-weight: 600;
+  }
+
+  .poem-content {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.125rem;
+    line-height: 2;
+    white-space: pre-wrap;
+    text-align: center;
+  }
+
+  .card-hover {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .card-hover:hover {
+    box-shadow: 0 8px 32px -8px rgba(45, 45, 45, 0.15);
+    transform: translateY(-2px);
+  }
+
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25em;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    vertical-align: middle;
+    user-select: none;
+  }
 }
