@@ -11,6 +11,7 @@ import {
 } from './api/drive/file'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleDriveTest } from './api/drive/test'
+import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
 
 interface Env {
   ASSETS: Fetcher
@@ -49,6 +50,9 @@ export default {
     const method = request.method
 
     if (path.startsWith('/api/')) {
+      // Public routes (no auth required)
+      if (path === '/api/site/status' && method === 'GET') return handleSiteStatusGet(makeCtx(request, env))
+
       // Public auth routes
       if (path === '/api/auth/google' && method === 'GET') return handleAuthGoogle(makeCtx(request, env))
       if (path === '/api/auth/callback' && method === 'GET') return handleAuthCallback(makeCtx(request, env))
@@ -69,6 +73,7 @@ export default {
         if (method === 'DELETE') return handleDriveFileDelete(makeCtx(request, env))
       }
       if (path === '/api/drive/upload-image' && method === 'POST') return handleUploadImage(makeCtx(request, env))
+      if (path === '/api/site/status' && method === 'POST') return handleSiteStatusPost(makeCtx(request, env))
 
       return new Response('Not Found', { status: 404 })
     }

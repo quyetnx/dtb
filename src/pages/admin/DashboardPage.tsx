@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Card, Col, Row, Statistic, Typography, Spin } from 'antd'
-import { FileTextOutlined, ReadOutlined, PictureOutlined, BookOutlined } from '@ant-design/icons'
+import { Card, Col, Row, Statistic, Typography, Spin, Switch, message } from 'antd'
+import { FileTextOutlined, ReadOutlined, PictureOutlined, BookOutlined, GlobalOutlined } from '@ant-design/icons'
 
 const { Title, Text } = Typography
 
@@ -22,6 +22,25 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats>({ vanXuoi: 0, tho: 0, ngheThuat: 0, hinhAnh: 0 })
   const [recent, setRecent] = useState<FileItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [sitePublic, setSitePublic] = useState(false)
+  const [toggling, setToggling] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/site/status').then((r) => r.json()).then((d: { public: boolean }) => setSitePublic(d.public))
+  }, [])
+
+  const togglePublic = async (val: boolean) => {
+    setToggling(true)
+    try {
+      await fetch('/api/site/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ public: val }) })
+      setSitePublic(val)
+      message.success(val ? 'Website đã mở public' : 'Website đã chuyển sang chế độ sắp ra mắt')
+    } catch {
+      message.error('Không thể cập nhật trạng thái')
+    } finally {
+      setToggling(false)
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -57,6 +76,20 @@ export default function DashboardPage() {
   return (
     <div>
       <Title level={4} style={{ marginBottom: 24, color: '#2d2d2d' }}>Tổng quan</Title>
+
+      <Card style={{ marginBottom: 24, borderRadius: 8, background: sitePublic ? '#f0fff4' : '#fff8ee', border: `1px solid ${sitePublic ? '#b7eb8f' : '#ffd591'}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <GlobalOutlined style={{ fontSize: 20, color: sitePublic ? '#52c41a' : '#fa8c16' }} />
+          <div style={{ flex: 1 }}>
+            <Text strong>Chế độ website</Text>
+            <br />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {sitePublic ? 'Public — khách truy cập thấy nội dung' : 'Sắp ra mắt — khách thấy trang chờ'}
+            </Text>
+          </div>
+          <Switch checked={sitePublic} loading={toggling} onChange={togglePublic} checkedChildren="Public" unCheckedChildren="Sắp ra mắt" />
+        </div>
+      </Card>
 
       <Row gutter={[16, 16]}>
         {cards.map((c) => (

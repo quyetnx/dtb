@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
@@ -8,9 +8,6 @@ import ArticleDetailPage from './pages/ArticleDetailPage'
 import PoemDetailPage from './pages/PoemDetailPage'
 import ArtsCulturePage from './pages/ArtsCulturePage'
 import ComingSoonPage from './pages/ComingSoonPage'
-
-// Đặt thành true khi sẵn sàng mở public
-const SITE_PUBLIC = false
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const AdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
@@ -29,6 +26,17 @@ function AdminSpinner() {
 }
 
 export default function App() {
+  const [sitePublic, setSitePublic] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    fetch('/api/site/status')
+      .then((r) => r.json())
+      .then((d: { public: boolean }) => setSitePublic(d.public))
+      .catch(() => setSitePublic(false))
+  }, [])
+
+  if (sitePublic === null) return null
+
   return (
     <BrowserRouter>
       <Routes>
@@ -95,7 +103,7 @@ export default function App() {
         <Route
           path="*"
           element={
-            SITE_PUBLIC ? (
+            sitePublic ? (
               <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-paper-ivory)' }}>
                 <Navbar />
                 <main className="flex-1">
