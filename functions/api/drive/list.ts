@@ -63,7 +63,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // Filter to published only, then cache in KV for 5 min
   data.files = (data.files ?? []).filter((f) => f.appProperties?.status === 'published')
   const cacheKey = `drive:list:${folder ?? 'default'}:${type ?? 'all'}`
-  await env.SESSIONS.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 })
+  // 15-min TTL: 96 KV writes/day per key (5 keys max → ~480 writes, well within 1K free limit)
+  await env.SESSIONS.put(cacheKey, JSON.stringify(data), { expirationTtl: 900 })
 
-  return Response.json(data, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } })
+  return Response.json(data, { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=120' } })
 }
