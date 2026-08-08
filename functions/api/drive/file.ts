@@ -56,8 +56,15 @@ async function getServiceAccountToken(serviceAccountKey: string, scope = 'https:
     }),
   })
 
-  const { access_token } = (await tokenRes.json()) as { access_token: string }
-  return access_token
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text()
+    console.error('[drive/file] token error', tokenRes.status, err)
+    throw new Error(`Token fetch failed: ${tokenRes.status} ${err}`)
+  }
+
+  const tokenData = (await tokenRes.json()) as { access_token: string }
+  console.log('[drive/file] token ok, iss:', key.client_email)
+  return tokenData.access_token
 }
 
 // GET /api/drive/file?id=<fileId> — read file content
@@ -88,6 +95,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const token = await getServiceAccountToken(env.GOOGLE_SERVICE_ACCOUNT_KEY)
   const folderId = body.folder ?? env.GOOGLE_DRIVE_FOLDER_ID
+  console.log('[drive/file] POST name:', body.name, 'folderId:', folderId)
 
   const metadata = {
     name: body.name,
@@ -108,6 +116,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   if (!res.ok) {
     const err = await res.text()
+    console.error('[drive/file] POST upload failed', res.status, err)
     return Response.json({ error: 'Upload failed', detail: err }, { status: 500 })
   }
 

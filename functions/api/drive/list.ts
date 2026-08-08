@@ -62,7 +62,13 @@ async function getServiceAccountToken(serviceAccountKey: string): Promise<string
     }),
   })
 
+  if (!tokenRes.ok) {
+    const err = await tokenRes.text()
+    console.error('[drive/list] token error', tokenRes.status, err)
+    throw new Error(`Token fetch failed: ${tokenRes.status} ${err}`)
+  }
   const { access_token } = (await tokenRes.json()) as { access_token: string }
+  console.log('[drive/list] token ok, iss:', key.client_email)
   return access_token
 }
 
@@ -89,8 +95,11 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   })
 
   if (!res.ok) {
-    return Response.json({ error: 'Drive API error' }, { status: 500 })
+    const err = await res.text()
+    console.error('[drive/list] Drive API error', res.status, err)
+    return Response.json({ error: 'Drive API error', detail: err }, { status: 500 })
   }
+  console.log('[drive/list] folder:', folder, 'type:', type)
 
   const data = await res.json() as { files: { appProperties?: { status?: string } }[] }
 
