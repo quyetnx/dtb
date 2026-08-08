@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
 
 interface FileItem {
   id: string
   name: string
   modifiedTime: string
-  appProperties?: { type?: string; category?: string; status?: string }
+  description?: string
+  appProperties?: { type?: string; category?: string; status?: string; coverImageId?: string }
 }
 
 export default function ArtsCulturePage() {
@@ -56,30 +58,86 @@ export default function ArtsCulturePage() {
           <>
             {/* Hero article */}
             {hero && (
-              <div
-                className="group p-10 mb-20 card-hover cursor-pointer"
-                style={{ border: '1px solid var(--color-muted-border)', borderRadius: '2px', backgroundColor: 'var(--color-surface-warm)' }}
+              <Link
+                to={`/van-tho/${hero.id}`}
+                className="group block mb-20 card-hover"
+                style={{
+                  border: '1px solid var(--color-muted-border)',
+                  borderRadius: '2px',
+                  backgroundColor: 'var(--color-surface-warm)',
+                  overflow: 'hidden',
+                }}
               >
-                {hero.appProperties?.category && (
-                  <p className="text-label mb-4" style={{ color: 'var(--color-oxblood)' }}>
-                    {hero.appProperties.category} · Bài viết nổi bật
-                  </p>
+                {hero.appProperties?.coverImageId ? (
+                  <>
+                    <div style={{ width: '100%', maxHeight: 400, overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
+                      <img
+                        src={`/api/drive/image?id=${hero.appProperties.coverImageId}`}
+                        alt={hero.name.replace(/\.md$/, '')}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', maxHeight: 400, transition: 'transform 0.5s' }}
+                        className="group-hover:scale-105"
+                        onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                      />
+                    </div>
+                    <div className="p-10">
+                      {hero.appProperties?.category && (
+                        <p className="text-label mb-4" style={{ color: 'var(--color-oxblood)' }}>
+                          {hero.appProperties.category} · Bài viết nổi bật
+                        </p>
+                      )}
+                      <h2
+                        className="text-display-md transition-colors group-hover:text-[var(--color-oxblood)]"
+                        style={{ color: 'var(--color-charcoal)', maxWidth: '720px' }}
+                      >
+                        {hero.name.replace(/\.md$/, '')}
+                      </h2>
+                      {hero.description && (
+                        <p
+                          className="text-body-md mt-4"
+                          style={{ color: 'var(--color-charcoal-muted)', maxWidth: '680px' }}
+                        >
+                          {hero.description}
+                        </p>
+                      )}
+                      <div
+                        className="flex items-center gap-3 mt-6 pt-6 text-label"
+                        style={{ color: 'var(--color-charcoal-muted)', borderTop: '1px solid var(--color-muted-border)' }}
+                      >
+                        <span>Dương Thanh Biểu</span>
+                        <span>·</span>
+                        <span>{new Date(hero.modifiedTime).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-10">
+                    {hero.appProperties?.category && (
+                      <p className="text-label mb-4" style={{ color: 'var(--color-oxblood)' }}>
+                        {hero.appProperties.category} · Bài viết nổi bật
+                      </p>
+                    )}
+                    <h2
+                      className="text-display-md transition-colors group-hover:text-[var(--color-oxblood)]"
+                      style={{ color: 'var(--color-charcoal)', maxWidth: '720px' }}
+                    >
+                      {hero.name.replace(/\.md$/, '')}
+                    </h2>
+                    {hero.description && (
+                      <p className="text-body-md mt-4" style={{ color: 'var(--color-charcoal-muted)', maxWidth: '680px' }}>
+                        {hero.description}
+                      </p>
+                    )}
+                    <div
+                      className="flex items-center gap-3 mt-6 pt-6 text-label"
+                      style={{ color: 'var(--color-charcoal-muted)', borderTop: '1px solid var(--color-muted-border)' }}
+                    >
+                      <span>Dương Thanh Biểu</span>
+                      <span>·</span>
+                      <span>{new Date(hero.modifiedTime).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                  </div>
                 )}
-                <h2
-                  className="text-display-md transition-colors group-hover:text-[var(--color-oxblood)]"
-                  style={{ color: 'var(--color-charcoal)', maxWidth: '720px' }}
-                >
-                  {hero.name.replace(/\.md$/, '')}
-                </h2>
-                <div
-                  className="flex items-center gap-3 mt-6 pt-6 text-label"
-                  style={{ color: 'var(--color-charcoal-muted)', borderTop: '1px solid var(--color-muted-border)' }}
-                >
-                  <span>Dương Thanh Biểu</span>
-                  <span>·</span>
-                  <span>{new Date(hero.modifiedTime).toLocaleDateString('vi-VN')}</span>
-                </div>
-              </div>
+              </Link>
             )}
 
             {rest.length > 0 && (
@@ -88,36 +146,77 @@ export default function ArtsCulturePage() {
                   Bài viết gần đây
                 </h2>
                 <div style={{ borderTop: '1px solid var(--color-muted-border)' }}>
-                  {rest.map((f) => (
-                    <div
-                      key={f.id}
-                      className="group flex items-start gap-6 py-8 card-hover cursor-pointer"
-                      style={{ borderBottom: '1px solid var(--color-muted-border)' }}
-                    >
-                      <div className="flex-1">
-                        {f.appProperties?.category && (
-                          <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
-                            {f.appProperties.category}
-                          </p>
-                        )}
-                        <h3
-                          className="text-display-sm mt-2 transition-colors group-hover:text-[var(--color-oxblood)]"
-                          style={{ color: 'var(--color-charcoal)' }}
-                        >
-                          {f.name.replace(/\.md$/, '')}
-                        </h3>
-                        <p className="text-label mt-3" style={{ color: 'var(--color-charcoal-muted)' }}>
-                          {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
-                        </p>
-                      </div>
-                      <span
-                        className="material-symbols-outlined text-xl mt-1 shrink-0 transition-transform group-hover:translate-x-1"
-                        style={{ color: 'var(--color-muted-border)' }}
+                  {rest.map((f) => {
+                    const coverImageId = f.appProperties?.coverImageId
+                    return (
+                      <Link
+                        key={f.id}
+                        to={`/van-tho/${f.id}`}
+                        className="group flex items-start gap-6 py-8 card-hover"
+                        style={{ borderBottom: '1px solid var(--color-muted-border)' }}
                       >
-                        arrow_forward
-                      </span>
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          {f.appProperties?.category && (
+                            <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
+                              {f.appProperties.category}
+                            </p>
+                          )}
+                          <h3
+                            className="text-display-sm mt-2 transition-colors group-hover:text-[var(--color-oxblood)]"
+                            style={{ color: 'var(--color-charcoal)' }}
+                          >
+                            {f.name.replace(/\.md$/, '')}
+                          </h3>
+                          {f.description && (
+                            <p
+                              className="mt-2"
+                              style={{
+                                color: 'var(--color-charcoal-muted)',
+                                fontSize: '0.95rem',
+                                lineHeight: 1.65,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {f.description}
+                            </p>
+                          )}
+                          <p className="text-label mt-3" style={{ color: 'var(--color-charcoal-muted)' }}>
+                            {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
+                          </p>
+                        </div>
+                        {coverImageId ? (
+                          <div
+                            className="shrink-0"
+                            style={{
+                              width: 128,
+                              height: 86,
+                              borderRadius: 2,
+                              overflow: 'hidden',
+                              backgroundColor: 'var(--color-paper-ivory-dark)',
+                            }}
+                          >
+                            <img
+                              src={`/api/drive/image?id=${coverImageId}`}
+                              alt=""
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
+                              className="group-hover:scale-105"
+                              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            className="material-symbols-outlined text-xl mt-1 shrink-0 transition-transform group-hover:translate-x-1"
+                            style={{ color: 'var(--color-muted-border)' }}
+                          >
+                            arrow_forward
+                          </span>
+                        )}
+                      </Link>
+                    )
+                  })}
                 </div>
               </>
             )}

@@ -29,8 +29,7 @@ interface FileMeta {
   name: string
   mimeType?: string
   modifiedTime: string
-  appProperties?: { type?: string; category?: string }
-  thumbnailLink?: string
+  appProperties?: { type?: string; category?: string; coverImageId?: string }
   description?: string
 }
 
@@ -111,7 +110,9 @@ export default function ArticleDetailPage() {
   }, [meta])
 
   const title = meta?.name.replace(/\.md$/, '') ?? ''
-  const thumbUrl = meta?.thumbnailLink ? `/api/drive/thumb?id=${id}` : undefined
+  const thumbUrl = meta?.appProperties?.coverImageId
+    ? `/api/drive/image?id=${meta.appProperties.coverImageId}`
+    : undefined
 
   useSEO({
     title: title || undefined,
@@ -191,6 +192,12 @@ export default function ArticleDetailPage() {
           )}
           <h1 className="text-display-lg" style={{ color: 'var(--color-charcoal)' }}>{title}</h1>
 
+          {meta.description && (
+            <p className="text-body-lg mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
+              {meta.description}
+            </p>
+          )}
+
           <div
             className="flex items-center gap-4 mt-6 pt-6 text-label"
             style={{ color: 'var(--color-charcoal-muted)', borderTop: '1px solid var(--color-muted-border)' }}
@@ -200,6 +207,26 @@ export default function ArticleDetailPage() {
             <span>{new Date(meta.modifiedTime).toLocaleDateString('vi-VN')}</span>
           </div>
         </header>
+
+        {/* Cover image */}
+        {meta.appProperties?.coverImageId && (
+          <div
+            style={{
+              maxWidth: '720px',
+              margin: '0 auto 2.5rem',
+              borderRadius: 4,
+              overflow: 'hidden',
+              backgroundColor: 'var(--color-paper-ivory-dark)',
+            }}
+          >
+            <img
+              src={`/api/drive/image?id=${meta.appProperties.coverImageId}`}
+              alt={title}
+              style={{ width: '100%', display: 'block', maxHeight: 420, objectFit: 'cover' }}
+              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+            />
+          </div>
+        )}
 
         {/* Content with protection */}
         <div

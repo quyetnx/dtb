@@ -8,7 +8,8 @@ interface FileItem {
   id: string
   name: string
   modifiedTime: string
-  appProperties?: { type?: string; category?: string; status?: string }
+  description?: string
+  appProperties?: { type?: string; category?: string; status?: string; coverImageId?: string }
 }
 
 interface VideoItem {
@@ -162,42 +163,73 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
-              {vanXuoi.map((f, i) => (
-                <Link
-                  key={f.id}
-                  to={`/van-tho/${f.id}`}
-                  className="group block card-hover p-8"
-                  style={{
-                    borderTop: '1px solid var(--color-muted-border)',
-                    borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
-                    minHeight: 180,
-                  }}
-                >
-                  {f.appProperties?.category && (
-                    <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
-                      {f.appProperties.category}
-                    </p>
-                  )}
-                  <h3
-                    className="mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+              {vanXuoi.map((f, i) => {
+                const coverImageId = f.appProperties?.coverImageId
+                return (
+                  <Link
+                    key={f.id}
+                    to={`/van-tho/${f.id}`}
+                    className="group block card-hover"
                     style={{
-                      color: 'var(--color-charcoal)',
-                      fontSize: 20,
-                      fontWeight: 700,
-                      lineHeight: 1.35,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
+                      borderTop: '1px solid var(--color-muted-border)',
+                      borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
                     }}
                   >
-                    {f.name.replace(/\.md$/, '')}
-                  </h3>
-                  <p className="text-label mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
-                    {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
-                  </p>
-                </Link>
-              ))}
+                    {coverImageId && (
+                      <div style={{ aspectRatio: '16/9', overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
+                        <img
+                          src={`/api/drive/image?id=${coverImageId}`}
+                          alt={f.name.replace(/\.md$/, '')}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s' }}
+                          className="group-hover:scale-105"
+                          onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                        />
+                      </div>
+                    )}
+                    <div className="p-8" style={{ minHeight: coverImageId ? 0 : 180 }}>
+                      {f.appProperties?.category && (
+                        <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>
+                          {f.appProperties.category}
+                        </p>
+                      )}
+                      <h3
+                        className="mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                        style={{
+                          color: 'var(--color-charcoal)',
+                          fontSize: 20,
+                          fontWeight: 700,
+                          lineHeight: 1.35,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {f.name.replace(/\.md$/, '')}
+                      </h3>
+                      {f.description && (
+                        <p
+                          className="mt-3"
+                          style={{
+                            color: 'var(--color-charcoal-muted)',
+                            fontSize: '0.9rem',
+                            lineHeight: 1.6,
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {f.description}
+                        </p>
+                      )}
+                      <p className="text-label mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
+                        {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
             <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
           </div>
