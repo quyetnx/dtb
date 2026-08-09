@@ -152,7 +152,7 @@ export default function ArtsCulturePage() {
                       <Link
                         key={f.id}
                         to={`/van-tho/${f.id}`}
-                        className="group flex items-start gap-6 py-8 card-hover"
+                        className="group flex items-start gap-6 py-8 -mx-4 px-4 transition-colors rounded-sm hover:bg-[var(--color-surface-warm)]"
                         style={{ borderBottom: '1px solid var(--color-muted-border)' }}
                       >
                         <div className="flex-1 min-w-0">
