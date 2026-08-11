@@ -165,6 +165,19 @@ async function injectOGMeta(
   return new Response(html, { status: htmlRes.status, headers })
 }
 
+// ── Drive list cache bust (called after any file write) ────────────────────
+
+async function bustDriveListCache(env: Env): Promise<void> {
+  const folder = await getDriveFolder(env).catch(() => null)
+  const key = folder ?? 'default'
+  await Promise.all([
+    env.SESSIONS.delete(`drive:list:${key}:all`),
+    env.SESSIONS.delete(`drive:list:${key}:image`),
+    env.SESSIONS.delete('drive:list:default:all'),
+    env.SESSIONS.delete('drive:list:default:image'),
+  ].map((p) => p.catch(() => {})))
+}
+
 // ── Drive thumbnail proxy ───────────────────────────────────────────────────
 
 async function handleDriveThumb(request: Request, env: Env): Promise<Response> {
@@ -261,9 +274,21 @@ export default {
     if (path === '/api/site/folder' && method === 'GET') return handleSiteFolderGet(makeCtx(request, env))
     if (path === '/api/site/folder' && method === 'POST') return handleSiteFolderPost(makeCtx(request, env))
     if (path === '/api/drive/file') {
-      if (method === 'POST') return handleDriveFilePost(makeCtx(request, env))
-      if (method === 'PATCH') return handleDriveFilePatch(makeCtx(request, env))
-      if (method === 'DELETE') return handleDriveFileDelete(makeCtx(request, env))
+      if (method === 'POST') {
+        const res = await handleDriveFilePost(makeCtx(request, env))
+        if (res.ok) await bustDriveListCache(env)
+        return res
+      }
+      if (method === 'PATCH') {
+        const res = await handleDriveFilePatch(makeCtx(request, env))
+        if (res.ok) await bustDriveListCache(env)
+        return res
+      }
+      if (method === 'DELETE') {
+        const res = await handleDriveFileDelete(makeCtx(request, env))
+        if (res.ok) await bustDriveListCache(env)
+        return res
+      }
     }
     if (path === '/api/drive/upload-image' && method === 'POST') return handleUploadImage(makeCtx(request, env))
     if (path === '/api/site/status' && method === 'POST') return handleSiteStatusPost(makeCtx(request, env))

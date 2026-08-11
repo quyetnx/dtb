@@ -20,7 +20,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     const cacheKey = `drive:list:${folder ?? 'default'}:${type ?? 'all'}`
     const cached = await env.SESSIONS.get(cacheKey, { type: 'json' })
     if (cached) {
-      return Response.json(cached, { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } })
+      return Response.json(cached, { headers: { 'Cache-Control': 'private, no-store' } })
     }
   }
 
@@ -66,5 +66,5 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // 15-min TTL: 96 KV writes/day per key (5 keys max → ~480 writes, well within 1K free limit)
   await env.SESSIONS.put(cacheKey, JSON.stringify(data), { expirationTtl: 900 })
 
-  return Response.json(data, { headers: { 'Cache-Control': 'public, s-maxage=900, stale-while-revalidate=120' } })
+  return Response.json(data, { headers: { 'Cache-Control': 'private, no-store' } })
 }
