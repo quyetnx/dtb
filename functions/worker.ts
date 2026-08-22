@@ -240,14 +240,10 @@ async function injectPageOGMeta(htmlRes: Response, cfg: PageOGConfig, meta: Site
 // ── Drive list cache bust (called after any file write) ────────────────────
 
 async function bustDriveListCache(env: Env): Promise<void> {
-  const folder = await getDriveFolder(env).catch(() => null)
-  const key = folder ?? 'default'
-  await Promise.all([
-    env.SESSIONS.delete(`drive:list:${key}:all`),
-    env.SESSIONS.delete(`drive:list:${key}:image`),
-    env.SESSIONS.delete('drive:list:default:all'),
-    env.SESSIONS.delete('drive:list:default:image'),
-  ].map((p) => p.catch(() => {})))
+  // List all KV keys with prefix drive:list: and delete them all
+  // This handles any folder ID variation without needing to guess the key
+  const listed = await env.SESSIONS.list({ prefix: 'drive:list:' })
+  await Promise.all(listed.keys.map((k) => env.SESSIONS.delete(k.name).catch(() => {})))
 }
 
 // ── Drive thumbnail proxy ───────────────────────────────────────────────────
@@ -406,6 +402,10 @@ export default {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if (path === '/api/admin/bust-cache' && method === 'POST') {
+      await bustDriveListCache(env)
+      return Response.json({ ok: true, message: 'Cache đã được xóa' })
+    }
     if (path === '/api/drive/list' && method === 'GET') return handleDriveList(makeCtx(request, env))
     if (path === '/api/drive/status' && method === 'GET') return handleDriveStatus(makeCtx(request, env))
     if (path === '/api/drive/disconnect' && method === 'POST') return handleDriveDisconnect(makeCtx(request, env))

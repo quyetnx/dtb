@@ -74,6 +74,7 @@ export default function SettingsPage() {
     locale: 'vi_VN',
   })
   const [metaSaving, setMetaSaving] = useState(false)
+  const [bustingCache, setBustingCache] = useState(false)
   const [msg, ctxHolder] = message.useMessage()
 
   const loadDrive = () => {
@@ -226,6 +227,18 @@ export default function SettingsPage() {
       msg.error('Không thể lưu')
     } finally {
       setMetaSaving(false)
+    }
+  }
+
+  const bustCache = async () => {
+    setBustingCache(true)
+    try {
+      await fetch('/api/admin/bust-cache', { method: 'POST' })
+      msg.success('Đã xóa cache danh sách bài viết')
+    } catch {
+      msg.error('Không thể xóa cache')
+    } finally {
+      setBustingCache(false)
     }
   }
 
@@ -496,6 +509,21 @@ export default function SettingsPage() {
             )}
           </>
         )}
+      </Section>
+
+      {/* ── Cache ────────────────────────────────────── */}
+      <Section title="Bộ nhớ đệm" icon={<ReloadOutlined />}>
+        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 16 }}>
+          Danh sách bài viết được cache trong 60 giây để giảm tải Drive API. Nhấn nút bên dưới để xóa
+          cache ngay lập tức — danh sách sẽ được tải mới từ Drive ở lần truy cập tiếp theo.
+        </Paragraph>
+        <Button
+          icon={<ReloadOutlined />}
+          loading={bustingCache}
+          onClick={bustCache}
+        >
+          Xóa cache danh sách bài viết
+        </Button>
       </Section>
 
       </Col>{/* end left column */}
