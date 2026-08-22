@@ -324,6 +324,23 @@ export default {
       return env.ASSETS.fetch(request)
     }
 
+    // ── Debug endpoint ────────────────────────────────────────────────────
+    if (path === '/api/debug/og' && method === 'GET') {
+      const rawKv = await env.SESSIONS.get('site:meta')
+      const siteMeta = await getSiteMeta(env)
+      const isHome = url.searchParams.get('path') !== 'listing'
+      const image = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+      return Response.json({
+        kv_raw: rawKv,
+        resolved: siteMeta,
+        would_inject: {
+          title: isHome ? siteMeta.homeTitle : siteMeta.siteTitle,
+          description: isHome ? siteMeta.homeDescription : siteMeta.siteDescription,
+          image,
+        },
+      }, { headers: { 'Cache-Control': 'no-store' } })
+    }
+
     // ── Public routes (no auth required) ──────────────────────────────────
     if (path === '/api/site/status' && method === 'GET') return handleSiteStatusGet(makeCtx(request, env))
     if (path === '/api/site/bio' && method === 'GET') return handleSiteBioGet(makeCtx(request, env))
