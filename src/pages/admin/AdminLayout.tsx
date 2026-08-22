@@ -12,6 +12,8 @@ import {
   PlayCircleOutlined,
   CloseOutlined,
   SettingOutlined,
+  NotificationOutlined,
+  FundProjectionScreenOutlined,
 } from '@ant-design/icons'
 
 const { Sider, Content } = Layout
@@ -64,8 +66,10 @@ export default function AdminLayout() {
     { key: '/admin/van-xuoi', icon: <FileTextOutlined />, label: <Link to="/admin/van-xuoi">Văn xuôi</Link> },
     { key: '/admin/tho', icon: <ReadOutlined />, label: <Link to="/admin/tho">Thơ</Link> },
     { key: '/admin/nghe-thuat', icon: <BookOutlined />, label: <Link to="/admin/nghe-thuat">Nghệ thuật</Link> },
+    { key: '/admin/tin-tuc', icon: <NotificationOutlined />, label: <Link to="/admin/tin-tuc">Tin tức</Link> },
     { key: '/admin/hinh-anh', icon: <PictureOutlined />, label: <Link to="/admin/hinh-anh">Hình ảnh</Link> },
     { key: '/admin/video', icon: <PlayCircleOutlined />, label: <Link to="/admin/video">Video</Link> },
+    { key: '/admin/quang-cao', icon: <FundProjectionScreenOutlined />, label: <Link to="/admin/quang-cao">Quảng cáo</Link> },
     { key: '/admin/settings', icon: <SettingOutlined />, label: <Link to="/admin/settings">Cài đặt</Link> },
   ]
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const navLinks = [
@@ -6,7 +7,22 @@ const navLinks = [
   { to: '/nghe-thuat-van-hoa', label: 'Nghệ thuật & Văn hóa' },
 ]
 
+function formatViews(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + ' triệu'
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + ' nghìn'
+  return n.toLocaleString('vi-VN')
+}
+
 export default function Footer() {
+  const [views, setViews] = useState<number | null>(null)
+
+  useEffect(() => {
+    fetch('/api/site/views', { method: 'POST' })
+      .then((r) => r.json())
+      .then((d: { views: number }) => setViews(d.views))
+      .catch(() => {})
+  }, [])
+
   return (
     <footer
       className="border-t"
@@ -46,16 +62,36 @@ export default function Footer() {
           </nav>
         </div>
 
+        {/* Contact info */}
+        <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+          <a
+            href="mailto:duongbieu2013@gmail.com"
+            className="text-label transition-colors hover:text-[var(--color-charcoal)]"
+            style={{ color: 'var(--color-charcoal-muted)' }}
+          >
+            duongbieu2013@gmail.com
+          </a>
+          <a
+            href="tel:0943125494"
+            className="text-label transition-colors hover:text-[var(--color-charcoal)]"
+            style={{ color: 'var(--color-charcoal-muted)' }}
+          >
+            0943 125 494
+          </a>
+        </div>
+
         <div
-          className="mt-10 pt-6 border-t flex flex-col md:flex-row items-center justify-between gap-4"
+          className="mt-8 pt-6 border-t flex flex-col md:flex-row items-center justify-between gap-4"
           style={{ borderColor: 'var(--color-muted-border)' }}
         >
           <p className="text-label" style={{ color: 'var(--color-charcoal-muted)' }}>
             © {new Date().getFullYear()} Dương Thanh Biểu. Bảo lưu mọi quyền.
           </p>
-          <p className="text-label" style={{ color: 'var(--color-charcoal-muted)' }}>
-            Thiết kế với tình yêu văn học
-          </p>
+          {views !== null && (
+            <p className="text-label" style={{ color: 'var(--color-charcoal-muted)' }}>
+              Lượt truy cập: {formatViews(views)}
+            </p>
+          )}
         </div>
       </div>
     </footer>

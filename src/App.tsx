@@ -9,6 +9,8 @@ import PoemDetailPage from './pages/PoemDetailPage'
 import ArtsCulturePage from './pages/ArtsCulturePage'
 import VideoPage from './pages/VideoPage'
 import VideoDetailPage from './pages/VideoDetailPage'
+import NewsPage from './pages/NewsPage'
+import NewsDetailPage from './pages/NewsDetailPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
@@ -19,11 +21,14 @@ const ThoPage = lazy(() => import('./pages/admin/ThoPage'))
 const NgheThuatPage = lazy(() => import('./pages/admin/NgheThuatPage'))
 const HinhAnhPage = lazy(() => import('./pages/admin/HinhAnhPage'))
 const AdminVideoPage = lazy(() => import('./pages/admin/VideoPage'))
+const TinTucPage = lazy(() => import('./pages/admin/TinTucPage'))
+const AdsPage = lazy(() => import('./pages/admin/AdsPage'))
 const ContentFormPage = lazy(() => import('./pages/admin/ContentFormPage'))
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 
 const VAN_XUOI_CATS = ['Tiểu thuyết', 'Truyện ngắn', 'Hồi ký', 'Tùy bút', 'Ký sự']
 const NGHE_THUAT_CATS = ['Phê bình văn học', 'Nghệ thuật', 'Âm nhạc', 'Văn hóa', 'Mỹ thuật', 'Kiến trúc']
+const TIN_TUC_CATS = ['Thời sự', 'Sự kiện', 'Thông báo', 'Hoạt động', 'Giải thưởng']
 
 function AdminSpinner() {
   return (
@@ -150,6 +155,30 @@ export default function App() {
             }
           />
           <Route
+            path="tin-tuc"
+            element={<Suspense fallback={<AdminSpinner />}><TinTucPage /></Suspense>}
+          />
+          <Route
+            path="tin-tuc/new"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <ContentFormPage contentType="tin-tuc" pageTitle="Tin tức" backPath="/admin/tin-tuc" categoryOptions={TIN_TUC_CATS} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="tin-tuc/:id"
+            element={
+              <Suspense fallback={<AdminSpinner />}>
+                <ContentFormPage contentType="tin-tuc" pageTitle="Tin tức" backPath="/admin/tin-tuc" categoryOptions={TIN_TUC_CATS} />
+              </Suspense>
+            }
+          />
+          <Route
+            path="quang-cao"
+            element={<Suspense fallback={<AdminSpinner />}><AdsPage /></Suspense>}
+          />
+          <Route
             path="settings"
             element={
               <Suspense fallback={<AdminSpinner />}>
@@ -175,6 +204,8 @@ export default function App() {
                     <Route path="/nghe-thuat-van-hoa" element={<ArtsCulturePage />} />
                     <Route path="/video" element={<VideoPage />} />
                     <Route path="/video/:id" element={<VideoDetailPage />} />
+                    <Route path="/tin-tuc" element={<NewsPage />} />
+                    <Route path="/tin-tuc/:slug" element={<NewsDetailPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

@@ -13,6 +13,7 @@ import { onRequestGet as handleDriveImage } from './api/drive/image'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
 import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } from './api/site/bio'
+import { onRequestGet as handleSiteViewsGet, onRequestPost as handleSiteViewsPost } from './api/site/views'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleYoutubeVideo } from './api/youtube/video'
 import { onRequestGet as handleYoutubePublishedGet, onRequestPost as handleYoutubePublishedPost } from './api/youtube/published'
@@ -20,6 +21,12 @@ import { onRequestGet as handleDriveStatus } from './api/drive/status'
 import { onRequestPost as handleDriveDisconnect } from './api/drive/disconnect'
 import { onRequestGet as handleDriveFolders } from './api/drive/folders'
 import { onRequestGet as handleSiteFolderGet, onRequestPost as handleSiteFolderPost } from './api/site/folder'
+import {
+  onRequestGet as handleAdsGet,
+  onRequestPost as handleAdsPost,
+  onRequestPatch as handleAdsPatch,
+  onRequestDelete as handleAdsDelete,
+} from './api/ads'
 import { getDriveToken } from './api/drive/_token'
 
 interface Env {
@@ -222,7 +229,8 @@ export default {
       // Inject OG meta for article/poem detail pages
       const articleMatch = path.match(/^\/van-tho\/([A-Za-z0-9_-]{10,})$/)
       const poemMatch = path.match(/^\/tho\/([A-Za-z0-9_-]{10,})$/)
-      const fileId = articleMatch?.[1] ?? poemMatch?.[1]
+      const newsMatch = path.match(/^\/tin-tuc\/([A-Za-z0-9_-]{10,})$/)
+      const fileId = articleMatch?.[1] ?? poemMatch?.[1] ?? newsMatch?.[1]
 
       if (fileId) {
         const htmlRes = await env.ASSETS.fetch(request)
@@ -235,6 +243,8 @@ export default {
     // ── Public routes (no auth required) ──────────────────────────────────
     if (path === '/api/site/status' && method === 'GET') return handleSiteStatusGet(makeCtx(request, env))
     if (path === '/api/site/bio' && method === 'GET') return handleSiteBioGet(makeCtx(request, env))
+    if (path === '/api/site/views' && method === 'GET') return handleSiteViewsGet(makeCtx(request, env))
+    if (path === '/api/site/views' && method === 'POST') return handleSiteViewsPost(makeCtx(request, env))
     if (path === '/api/auth/google' && method === 'GET') return handleAuthGoogle(makeCtx(request, env))
     if (path === '/api/auth/callback' && method === 'GET') return handleAuthCallback(makeCtx(request, env))
     if (path === '/api/auth/me' && method === 'GET') return handleAuthMe(makeCtx(request, env))
@@ -261,6 +271,9 @@ export default {
     // Public YouTube
     if (path === '/api/youtube/list' && method === 'GET') return handleYoutubeList(makeCtx(request, env))
     if (path === '/api/youtube/video' && method === 'GET') return handleYoutubeVideo(makeCtx(request, env))
+
+    // Public Ads
+    if (path === '/api/ads' && method === 'GET') return handleAdsGet(makeCtx(request, env))
 
     // ── Protected routes (auth required) ──────────────────────────────────
     if (!(await isAuthenticated(request, env))) {
@@ -295,6 +308,11 @@ export default {
     if (path === '/api/site/bio' && method === 'POST') return handleSiteBioPost(makeCtx(request, env))
     if (path === '/api/youtube/published' && method === 'GET') return handleYoutubePublishedGet(makeCtx(request, env))
     if (path === '/api/youtube/published' && method === 'POST') return handleYoutubePublishedPost(makeCtx(request, env))
+
+    // Admin Ads
+    if (path === '/api/ads' && method === 'POST') return handleAdsPost(makeCtx(request, env))
+    if (path === '/api/ads' && method === 'PATCH') return handleAdsPatch(makeCtx(request, env))
+    if (path === '/api/ads' && method === 'DELETE') return handleAdsDelete(makeCtx(request, env))
 
     return new Response('Not Found', { status: 404 })
   },

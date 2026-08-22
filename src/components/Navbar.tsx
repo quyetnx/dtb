@@ -5,6 +5,7 @@ const navLinks = [
   { to: '/', label: 'Trang chủ' },
   { to: '/van-tho', label: 'Văn Thơ' },
   { to: '/nghe-thuat-van-hoa', label: 'Nghệ thuật & Văn hóa' },
+  { to: '/tin-tuc', label: 'Tin tức' },
   { to: '/video', label: 'Video' },
 ]
 
