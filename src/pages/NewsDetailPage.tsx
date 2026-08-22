@@ -115,7 +115,7 @@ export default function NewsDetailPage() {
           <img
             src={`/api/drive/image?id=${meta.appProperties.coverImageId}`}
             alt={title}
-            style={{ width: '100%', display: 'block', maxHeight: 420, objectFit: 'cover' }}
+            style={{ width: '100%', display: 'block', maxHeight: 420, objectFit: 'cover', objectPosition: 'top' }}
             onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
           />
         </div>

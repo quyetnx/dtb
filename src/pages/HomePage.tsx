@@ -181,8 +181,8 @@ export default function HomePage() {
                         <img
                           src={`/api/drive/image?id=${coverImageId}`}
                           alt={f.name.replace(/\.md$/, '')}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s' }}
-                          className="group-hover:scale-105"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block', transition: 'transform 0.6s ease-out' }}
+                          className="scale-110 group-hover:scale-100"
                           onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
                         />
                       </div>
@@ -327,8 +327,8 @@ export default function HomePage() {
                     <img
                       src={v.thumbnail}
                       alt={v.title}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.2s, transform 0.3s' }}
-                      className="group-hover:opacity-80 group-hover:scale-105"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'opacity 0.2s, transform 0.6s ease-out' }}
+                      className="scale-110 group-hover:scale-100 group-hover:opacity-80"
                     />
                     <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{

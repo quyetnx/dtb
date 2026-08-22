@@ -98,12 +98,12 @@ export default function LiteraturePage() {
               >
                 {featured.appProperties?.coverImageId ? (
                   <div className="grid grid-cols-1 md:grid-cols-2" style={{ minHeight: 260 }}>
-                    <div style={{ overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)', maxHeight: 360 }}>
+                    <div style={{ overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)', height: 340 }}>
                       <img
                         src={`/api/drive/image?id=${featured.appProperties.coverImageId}`}
                         alt={featured.name.replace(/\.md$/, '')}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s' }}
-                        className="group-hover:scale-105"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block', transition: 'transform 0.6s ease-out' }}
+                        className="scale-110 group-hover:scale-100"
                         onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
                       />
                     </div>
@@ -225,8 +225,8 @@ export default function LiteraturePage() {
                         <img
                           src={`/api/drive/image?id=${coverImageId}`}
                           alt=""
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
-                          className="group-hover:scale-105"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transition: 'transform 0.6s ease-out' }}
+                          className="scale-110 group-hover:scale-100"
                           onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
                         />
                       </div>

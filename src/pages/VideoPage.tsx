@@ -166,8 +166,8 @@ function VideoCard({ video }: { video: VideoItem }) {
         <img
           src={video.thumbnail}
           alt={video.title}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.5s' }}
-          className="group-hover:scale-105"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.6s ease-out' }}
+          className="scale-110 group-hover:scale-100"
         />
         <div
           style={{

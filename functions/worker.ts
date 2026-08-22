@@ -30,6 +30,7 @@ import {
   onRequestDelete as handleAdsDelete,
 } from './api/ads'
 import { getDriveToken } from './api/drive/_token'
+import { getDriveFolder } from './api/drive/_folder'
 
 interface Env {
   ASSETS: Fetcher
@@ -416,17 +417,17 @@ export default {
     if (path === '/api/drive/file') {
       if (method === 'POST') {
         const res = await handleDriveFilePost(makeCtx(request, env))
-        if (res.ok) await bustDriveListCache(env)
+        if (res.ok) bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
         return res
       }
       if (method === 'PATCH') {
         const res = await handleDriveFilePatch(makeCtx(request, env))
-        if (res.ok) await bustDriveListCache(env)
+        if (res.ok) bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
         return res
       }
       if (method === 'DELETE') {
         const res = await handleDriveFileDelete(makeCtx(request, env))
-        if (res.ok) await bustDriveListCache(env)
+        if (res.ok) bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
         return res
       }
     }
