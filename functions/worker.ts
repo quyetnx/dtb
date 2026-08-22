@@ -98,6 +98,15 @@ function escHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+// Remove existing title/description/og/twitter tags so injected ones don't duplicate
+function stripExistingMeta(html: string): string {
+  return html
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '')
+    .replace(/<meta\s+name="description"[^>]*\/?>/gi, '')
+    .replace(/<meta\s+property="og:[^"]*"[^>]*\/?>/gi, '')
+    .replace(/<meta\s+name="twitter:[^"]*"[^>]*\/?>/gi, '')
+}
+
 interface FileMeta {
   name?: string
   description?: string
@@ -164,7 +173,7 @@ async function injectOGMeta(
   <meta name="twitter:description" content="${escHtml(desc)}">
   <meta name="twitter:image" content="${escHtml(imageUrl)}">`.trim()
 
-  let html = await htmlRes.text()
+  let html = stripExistingMeta(await htmlRes.text())
   const tokenScript = contentToken ? `<script>window.__ct="${contentToken}"</script>` : ''
   html = html.replace(/<\/head>/, `  ${ogBlock}\n  ${tokenScript}\n  </head>`)
 
@@ -217,7 +226,7 @@ async function injectPageOGMeta(htmlRes: Response, cfg: PageOGConfig, meta: Site
   <meta name="twitter:image" content="${escHtml(cfg.image)}">
   ${meta.twitterSite ? `<meta name="twitter:site" content="${escHtml(meta.twitterSite)}">` : ''}`.trim()
 
-  let html = await htmlRes.text()
+  let html = stripExistingMeta(await htmlRes.text())
   html = html.replace(/<\/head>/, `  ${ogBlock}\n  </head>`)
 
   const headers = new Headers(htmlRes.headers)
