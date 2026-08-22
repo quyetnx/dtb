@@ -56,6 +56,8 @@ export default function HomePage() {
 
   const vanXuoi = files.filter((f) => f.appProperties?.type === 'van-xuoi').slice(0, 3)
   const tho = files.filter((f) => f.appProperties?.type === 'tho').slice(0, 3)
+  const tinTuc = files.filter((f) => f.appProperties?.type === 'tin-tuc').slice(0, 3)
+  const ngheThat = files.filter((f) => f.appProperties?.type === 'nghe-thuat').slice(0, 4)
 
   return (
     <>
@@ -292,6 +294,165 @@ export default function HomePage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Tin tức ──────────────────────────────────────── */}
+      {tinTuc.length > 0 && (
+        <section className="section-gap" style={{ borderTop: '1px solid var(--color-muted-border)' }}>
+          <div className="container-main">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>Cập nhật</p>
+                <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>Tin tức</h2>
+              </div>
+              <Link
+                to="/tin-tuc"
+                className="hidden md:inline-flex items-center gap-1 text-label transition-colors hover:text-[var(--color-charcoal)]"
+                style={{ color: 'var(--color-charcoal-muted)' }}
+              >
+                Xem tất cả
+                <span className="material-symbols-outlined text-[1em]">arrow_forward</span>
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
+              {tinTuc.map((f, i) => {
+                const coverImageId = f.appProperties?.coverImageId
+                return (
+                  <Link
+                    key={f.id}
+                    to={`/tin-tuc/${f.id}`}
+                    className="group block card-hover"
+                    style={{
+                      borderTop: '1px solid var(--color-muted-border)',
+                      borderLeft: i > 0 ? '1px solid var(--color-muted-border)' : 'none',
+                    }}
+                  >
+                    {coverImageId && (
+                      <div style={{ aspectRatio: '16/9', overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
+                        <img
+                          src={`/api/drive/image?id=${coverImageId}`}
+                          alt={f.name.replace(/\.md$/, '')}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block', transition: 'transform 0.6s ease-out' }}
+                          className="scale-110 group-hover:scale-100"
+                          onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                        />
+                      </div>
+                    )}
+                    <div className="p-8" style={{ minHeight: coverImageId ? 0 : 160 }}>
+                      {f.appProperties?.category && (
+                        <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>{f.appProperties.category}</p>
+                      )}
+                      <h3
+                        className="mt-3 transition-colors group-hover:text-[var(--color-oxblood)]"
+                        style={{
+                          color: 'var(--color-charcoal)', fontSize: 18, fontWeight: 700,
+                          lineHeight: 1.4, display: '-webkit-box',
+                          WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                        }}
+                      >
+                        {f.name.replace(/\.md$/, '')}
+                      </h3>
+                      {f.description && (
+                        <p
+                          className="mt-2"
+                          style={{
+                            color: 'var(--color-charcoal-muted)', fontSize: '0.875rem', lineHeight: 1.6,
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                          }}
+                        >
+                          {f.description}
+                        </p>
+                      )}
+                      <p className="text-label mt-4" style={{ color: 'var(--color-charcoal-muted)' }}>
+                        {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+            <div style={{ height: '1px', backgroundColor: 'var(--color-muted-border)' }} />
+          </div>
+        </section>
+      )}
+
+      {/* ── Nghệ thuật & Văn hóa ─────────────────────────── */}
+      {ngheThat.length > 0 && (
+        <section className="section-gap" style={{ borderTop: ngheThat.length > 0 ? '1px solid var(--color-muted-border)' : undefined }}>
+          <div className="container-main">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-label mb-2" style={{ color: 'var(--color-oxblood)' }}>Khám phá</p>
+                <h2 className="text-display-md" style={{ color: 'var(--color-charcoal)' }}>Nghệ thuật & Văn hóa</h2>
+              </div>
+              <Link
+                to="/nghe-thuat-van-hoa"
+                className="hidden md:inline-flex items-center gap-1 text-label transition-colors hover:text-[var(--color-charcoal)]"
+                style={{ color: 'var(--color-charcoal-muted)' }}
+              >
+                Xem tất cả
+                <span className="material-symbols-outlined text-[1em]">arrow_forward</span>
+              </Link>
+            </div>
+            <div style={{ borderTop: '1px solid var(--color-muted-border)' }}>
+              {ngheThat.map((f) => {
+                const coverImageId = f.appProperties?.coverImageId
+                return (
+                  <Link
+                    key={f.id}
+                    to={`/van-tho/${f.id}`}
+                    className="group flex items-start gap-6 py-7 -mx-4 px-4 transition-colors rounded-sm hover:bg-[var(--color-surface-warm)]"
+                    style={{ borderBottom: '1px solid var(--color-muted-border)' }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      {f.appProperties?.category && (
+                        <p className="text-label" style={{ color: 'var(--color-oxblood)' }}>{f.appProperties.category}</p>
+                      )}
+                      <h3
+                        className="text-display-sm mt-2 transition-colors group-hover:text-[var(--color-oxblood)]"
+                        style={{ color: 'var(--color-charcoal)' }}
+                      >
+                        {f.name.replace(/\.md$/, '')}
+                      </h3>
+                      {f.description && (
+                        <p
+                          className="mt-2"
+                          style={{
+                            color: 'var(--color-charcoal-muted)', fontSize: '0.9rem', lineHeight: 1.6,
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                          }}
+                        >
+                          {f.description}
+                        </p>
+                      )}
+                      <p className="text-label mt-3" style={{ color: 'var(--color-charcoal-muted)' }}>
+                        {new Date(f.modifiedTime).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
+                    {coverImageId ? (
+                      <div className="shrink-0" style={{ width: 120, height: 80, borderRadius: 2, overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
+                        <img
+                          src={`/api/drive/image?id=${coverImageId}`}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transition: 'transform 0.6s ease-out' }}
+                          className="scale-110 group-hover:scale-100"
+                          onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none' }}
+                        />
+                      </div>
+                    ) : (
+                      <span
+                        className="material-symbols-outlined text-xl mt-1 shrink-0 transition-transform group-hover:translate-x-1"
+                        style={{ color: 'var(--color-muted-border)' }}
+                      >
+                        arrow_forward
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
             </div>
           </div>
         </section>
