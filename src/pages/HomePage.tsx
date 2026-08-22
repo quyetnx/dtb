@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
+import AdBanner from '../components/AdBanner'
 
 const AUTHOR_PHOTO = 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
 
@@ -374,6 +375,9 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* ── Ads ──────────────────────────────────────────── */}
+      <AdBanner position="home" className="container-main" style={{ paddingTop: 48, paddingBottom: 0 }} />
 
       {/* ── About banner ─────────────────────────────────── */}
       <section

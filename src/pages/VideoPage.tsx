@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
+import AdBanner from '../components/AdBanner'
 
 interface VideoItem {
   id: string
@@ -139,6 +140,8 @@ export default function VideoPage() {
           </>
         )}
       </div>
+
+      <AdBanner position="video" className="container-main" style={{ paddingBottom: 48 }} />
     </>
   )
 }

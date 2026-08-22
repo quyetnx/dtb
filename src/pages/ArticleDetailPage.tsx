@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { marked, type TokenizerAndRendererExtension } from 'marked'
 import { useSEO } from '../hooks/useSEO'
+import AdBanner from '../components/AdBanner'
 
 // Custom extension: [youtube:videoId] → embedded iframe
 const youtubeExtension: TokenizerAndRendererExtension = {
@@ -367,6 +368,8 @@ export default function ArticleDetailPage() {
             Xem tất cả tác phẩm
           </Link>
         </div>
+
+        <AdBanner position="article" style={{ maxWidth: '720px', margin: '0 auto', paddingBottom: 48 }} />
       </article>
     </>
   )
