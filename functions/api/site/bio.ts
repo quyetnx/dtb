@@ -6,7 +6,7 @@ const KV_KEY = 'site:bio'
 
 const DEFAULT = {
   quote: 'Văn chương là cầu nối giữa tâm hồn con người với con người, giữa quá khứ và hiện tại, giữa đau thương và hy vọng.',
-  bio: 'Dương Thanh Biểu là nhà văn, nhà thơ người Việt Nam với hơn bốn thập kỷ cầm bút.',
+  bio: 'TS, nhà văn, nhà báo Dương Thanh Biểu.',
   bioDetail: 'Tác phẩm của ông phản ánh sâu sắc hiện thực lịch sử, tình người và quê hương đất nước qua từng giai đoạn của dân tộc.',
 }
 
