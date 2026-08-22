@@ -141,6 +141,31 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
     }
   }
 
+  const extractAndStripTitle = (html: string): { title: string; body: string } => {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    // Look for first heading (h1–h4) or a short first paragraph acting as title
+    const candidate = doc.body.querySelector('h1, h2, h3, h4')
+      ?? (() => {
+        const p = doc.body.querySelector('p, div')
+        if (!p) return null
+        const text = (p.textContent ?? '').trim()
+        // Treat as title only if short enough to be a heading (≤120 chars, no period mid-sentence)
+        return text.length > 0 && text.length <= 120 && !text.slice(0, -1).includes('.') ? p : null
+      })()
+
+    if (!candidate) return { title: '', body: doc.body.innerHTML }
+
+    const title = (candidate.textContent ?? '').trim()
+    candidate.remove()
+    // Remove any leading empty paragraphs left behind
+    while (doc.body.firstElementChild) {
+      const text = (doc.body.firstElementChild.textContent ?? '').trim()
+      if (text === '') doc.body.firstElementChild.remove()
+      else break
+    }
+    return { title, body: doc.body.innerHTML.trim() }
+  }
+
   const handleDocxImport = async (file: File) => {
     setDocxImporting(true)
     try {
@@ -154,13 +179,22 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
       if (imgCount > 0) {
         msg.loading({ content: `Đang upload ${imgCount} ảnh lên Drive...`, key: 'docx-upload' })
       }
-      const html = await uploadBase64Images(result.value)
+      const uploadedHtml = await uploadBase64Images(result.value)
+      const { title: extractedTitle, body } = extractAndStripTitle(uploadedHtml)
+
+      // Auto-fill title only if the field is currently empty
+      if (extractedTitle) {
+        const current = form.getFieldValue('name') as string | undefined
+        if (!current?.trim()) {
+          form.setFieldsValue({ name: extractedTitle })
+        }
+      }
+
       msg.success({ content: 'Đã nhập nội dung từ Word thành công!', key: 'docx-upload', duration: 4 })
-      const trimmed = html.trim()
-      setContent(trimmed)
+      setContent(body)
       setContentFormat('html')
       setEditorMode('html')
-      autoFillFromContent(trimmed, coverImageId)
+      autoFillFromContent(body, coverImageId)
     } catch { msg.error('Không thể đọc file DOCX') }
     finally {
       setDocxImporting(false)
