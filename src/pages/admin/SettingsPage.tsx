@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react'
 import {
-  Typography, Card, Switch, Button, message, Divider, Tag, Spin, Space, Input, Select,
+  Typography, Switch, Button, message, Divider, Tag, Spin, Space, Input, Select, Row, Col,
 } from 'antd'
 import {
   CheckCircleOutlined, WarningOutlined, DisconnectOutlined,
   LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined, UserOutlined, FolderOutlined,
-  EyeOutlined,
+  EyeOutlined, SearchOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
+
+interface SiteMeta {
+  siteTitle: string
+  siteDescription: string
+  ogImage: string
+  homeTitle: string
+  homeDescription: string
+  homeOgImage: string
+  twitterSite: string
+  locale: string
+}
 
 interface DriveStatus {
   connected: boolean
@@ -52,7 +63,18 @@ export default function SettingsPage() {
   const [currentViews, setCurrentViews] = useState<number | null>(null)
   const [viewsInput, setViewsInput] = useState('')
   const [viewsSaving, setViewsSaving] = useState(false)
-const [msg, ctxHolder] = message.useMessage()
+  const [siteMeta, setSiteMeta] = useState<SiteMeta>({
+    siteTitle: 'Dương Thanh Biểu',
+    siteDescription: '',
+    ogImage: '',
+    homeTitle: '',
+    homeDescription: '',
+    homeOgImage: '',
+    twitterSite: '',
+    locale: 'vi_VN',
+  })
+  const [metaSaving, setMetaSaving] = useState(false)
+  const [msg, ctxHolder] = message.useMessage()
 
   const loadDrive = () => {
     setDriveLoading(true)
@@ -87,6 +109,10 @@ const [msg, ctxHolder] = message.useMessage()
     fetch('/api/site/views')
       .then((r) => r.json())
       .then((d: { views: number }) => setCurrentViews(d.views))
+      .catch(() => {})
+    fetch('/api/site/meta')
+      .then((r) => r.json())
+      .then((d: SiteMeta) => setSiteMeta(d))
       .catch(() => {})
   }, [])
 
@@ -187,13 +213,33 @@ const [msg, ctxHolder] = message.useMessage()
     }
   }
 
+  const saveMeta = async () => {
+    setMetaSaving(true)
+    try {
+      await fetch('/api/site/meta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(siteMeta),
+      })
+      msg.success('Đã lưu cài đặt SEO & OG')
+    } catch {
+      msg.error('Không thể lưu')
+    } finally {
+      setMetaSaving(false)
+    }
+  }
+
   const driveOk = drive?.connected && (!drive.expectedEmail || drive.email?.toLowerCase() === drive.expectedEmail.toLowerCase())
   const driveWrong = drive?.connected && drive.expectedEmail && drive.email?.toLowerCase() !== drive.expectedEmail.toLowerCase()
 
   return (
-    <div style={{ maxWidth: 680 }}>
+    <div>
       {ctxHolder}
       <Title level={4} style={{ marginBottom: 24 }}>Cài đặt hệ thống</Title>
+      <Row gutter={[20, 0]} align="top">
+
+      {/* ── Left column: infrastructure ──────────────── */}
+      <Col xs={24} xl={12}>
 
       {/* ── Google Drive ─────────────────────────────── */}
       <Section title="Kết nối Google Drive" icon={<CloudOutlined />}>
@@ -452,6 +498,86 @@ const [msg, ctxHolder] = message.useMessage()
         )}
       </Section>
 
+      </Col>{/* end left column */}
+
+      {/* ── Right column: content & SEO ──────────────── */}
+      <Col xs={24} xl={12}>
+
+      {/* ── SEO & OG Metadata ────────────────────────── */}
+      <Section title="SEO & OG Metadata" icon={<SearchOutlined />}>
+        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 16 }}>
+          Thẻ meta và Open Graph cho trang chủ và các trang listing. Trang bài viết có OG riêng từ nội dung.
+        </Paragraph>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Tên trang (og:site_name)</Text>
+          <Input value={siteMeta.siteTitle} onChange={(e) => setSiteMeta((p) => ({ ...p, siteTitle: e.target.value }))} placeholder="Dương Thanh Biểu" />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>og:locale</Text>
+          <Input value={siteMeta.locale} onChange={(e) => setSiteMeta((p) => ({ ...p, locale: e.target.value }))} placeholder="vi_VN" />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Twitter/X handle (twitter:site)</Text>
+          <Input value={siteMeta.twitterSite} onChange={(e) => setSiteMeta((p) => ({ ...p, twitterSite: e.target.value }))} placeholder="@handle" />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Ảnh OG mặc định (og:image)</Text>
+          <Input value={siteMeta.ogImage} onChange={(e) => setSiteMeta((p) => ({ ...p, ogImage: e.target.value }))} placeholder="https://..." />
+          <Text type="secondary" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Dùng cho trang không có ảnh riêng</Text>
+        </div>
+
+        <Divider plain style={{ fontSize: 12, color: '#bbb', margin: '8px 0 14px' }}>Trang chủ</Divider>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>{'<title>'} trang chủ</Text>
+          <Input value={siteMeta.homeTitle} onChange={(e) => setSiteMeta((p) => ({ ...p, homeTitle: e.target.value }))} placeholder="Dương Thanh Biểu — Nhà văn, Nhà thơ" />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Meta description trang chủ</Text>
+          <TextArea
+            value={siteMeta.homeDescription}
+            onChange={(e) => setSiteMeta((p) => ({ ...p, homeDescription: e.target.value }))}
+            rows={2}
+            placeholder="Mô tả ngắn hiển thị trên kết quả Google..."
+            maxLength={160}
+            showCount
+          />
+        </div>
+
+        <div style={{ marginBottom: 14 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>og:image trang chủ (tuỳ chọn)</Text>
+          <Input value={siteMeta.homeOgImage} onChange={(e) => setSiteMeta((p) => ({ ...p, homeOgImage: e.target.value }))} placeholder="Để trống = dùng ảnh OG mặc định" />
+        </div>
+
+        <Divider plain style={{ fontSize: 12, color: '#bbb', margin: '8px 0 14px' }}>Các trang còn lại</Divider>
+
+        <div style={{ marginBottom: 20 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Meta description mặc định</Text>
+          <TextArea
+            value={siteMeta.siteDescription}
+            onChange={(e) => setSiteMeta((p) => ({ ...p, siteDescription: e.target.value }))}
+            rows={2}
+            placeholder="Mô tả mặc định cho trang listing (văn thơ, nghệ thuật, video...)..."
+            maxLength={160}
+            showCount
+          />
+        </div>
+
+        <Button
+          type="primary"
+          loading={metaSaving}
+          onClick={saveMeta}
+          style={{ background: '#7c3535', borderColor: '#7c3535' }}
+        >
+          Lưu SEO & OG
+        </Button>
+      </Section>
+
       {/* ── Author bio ───────────────────────────────── */}
       <Section title="Thông tin tác giả" icon={<UserOutlined />}>
         <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 20 }}>
@@ -531,6 +657,9 @@ const [msg, ctxHolder] = message.useMessage()
           </Button>
         </Space.Compact>
       </Section>
+
+      </Col>{/* end right column */}
+      </Row>
     </div>
   )
 }

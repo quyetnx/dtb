@@ -14,6 +14,8 @@ import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
 import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } from './api/site/bio'
 import { onRequestGet as handleSiteViewsGet, onRequestPost as handleSiteViewsPost, onRequestPut as handleSiteViewsPut } from './api/site/views'
+import { onRequestGet as handleSiteMetaGet, onRequestPost as handleSiteMetaPost } from './api/site/meta'
+import type { SiteMeta } from './api/site/meta'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleYoutubeVideo } from './api/youtube/video'
 import { onRequestGet as handleYoutubePublishedGet, onRequestPost as handleYoutubePublishedPost } from './api/youtube/published'
@@ -172,6 +174,57 @@ async function injectOGMeta(
   return new Response(html, { status: htmlRes.status, headers })
 }
 
+// ── Site-wide OG meta injection (homepage + listing pages) ────────────────
+
+async function getSiteMeta(env: Env): Promise<SiteMeta> {
+  const raw = await env.SESSIONS.get('site:meta')
+  const defaults: SiteMeta = {
+    siteTitle: 'Dương Thanh Biểu',
+    siteDescription: 'Trang web của nhà văn, nhà thơ Dương Thanh Biểu — tác phẩm văn học, thơ và nghệ thuật.',
+    ogImage: 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png',
+    homeTitle: 'Dương Thanh Biểu — Nhà văn, Nhà thơ',
+    homeDescription: 'Trang web của TS, nhà văn, nhà báo Dương Thanh Biểu — tác phẩm văn học, thơ và nghệ thuật.',
+    homeOgImage: '',
+    twitterSite: '',
+    locale: 'vi_VN',
+  }
+  return raw ? { ...defaults, ...(JSON.parse(raw) as Partial<SiteMeta>) } : defaults
+}
+
+interface PageOGConfig {
+  title: string
+  description: string
+  image: string
+  url: string
+  type?: string
+}
+
+async function injectPageOGMeta(htmlRes: Response, cfg: PageOGConfig, meta: SiteMeta): Promise<Response> {
+  const ogBlock = `
+  <title>${escHtml(cfg.title)}</title>
+  <meta name="description" content="${escHtml(cfg.description)}">
+  <meta property="og:type" content="${cfg.type ?? 'website'}">
+  <meta property="og:title" content="${escHtml(cfg.title)}">
+  <meta property="og:description" content="${escHtml(cfg.description)}">
+  <meta property="og:image" content="${escHtml(cfg.image)}">
+  <meta property="og:url" content="${escHtml(cfg.url)}">
+  <meta property="og:site_name" content="${escHtml(meta.siteTitle)}">
+  <meta property="og:locale" content="${escHtml(meta.locale)}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escHtml(cfg.title)}">
+  <meta name="twitter:description" content="${escHtml(cfg.description)}">
+  <meta name="twitter:image" content="${escHtml(cfg.image)}">
+  ${meta.twitterSite ? `<meta name="twitter:site" content="${escHtml(meta.twitterSite)}">` : ''}`.trim()
+
+  let html = await htmlRes.text()
+  html = html.replace(/<\/head>/, `  ${ogBlock}\n  </head>`)
+
+  const headers = new Headers(htmlRes.headers)
+  headers.set('Content-Type', 'text/html; charset=utf-8')
+  headers.delete('Content-Length')
+  return new Response(html, { status: htmlRes.status, headers })
+}
+
 // ── Drive list cache bust (called after any file write) ────────────────────
 
 async function bustDriveListCache(env: Env): Promise<void> {
@@ -226,7 +279,7 @@ export default {
     const method = request.method
 
     if (!path.startsWith('/api/')) {
-      // Inject OG meta for article/poem detail pages
+      // Inject OG meta for article/poem/news detail pages
       const articleMatch = path.match(/^\/van-tho\/([A-Za-z0-9_-]{10,})$/)
       const poemMatch = path.match(/^\/tho\/([A-Za-z0-9_-]{10,})$/)
       const newsMatch = path.match(/^\/tin-tuc\/([A-Za-z0-9_-]{10,})$/)
@@ -237,6 +290,26 @@ export default {
         return injectOGMeta(htmlRes, fileId, env, url.origin, !!poemMatch)
       }
 
+      // Inject site-wide OG meta for page routes (homepage and listing pages)
+      const isPageRoute = path === '/' || path === '/van-tho' || path === '/tho'
+        || path === '/nghe-thuat-van-hoa' || path === '/video' || path === '/tin-tuc'
+      if (isPageRoute) {
+        const [htmlRes, siteMeta] = await Promise.all([
+          env.ASSETS.fetch(request),
+          getSiteMeta(env),
+        ])
+        const isHome = path === '/'
+        const image = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+        const cfg: PageOGConfig = {
+          title: isHome ? siteMeta.homeTitle : `${siteMeta.siteTitle}`,
+          description: isHome ? siteMeta.homeDescription : siteMeta.siteDescription,
+          image,
+          url: `${url.origin}${path}`,
+          type: 'website',
+        }
+        return injectPageOGMeta(htmlRes, cfg, siteMeta)
+      }
+
       return env.ASSETS.fetch(request)
     }
 
@@ -245,6 +318,7 @@ export default {
     if (path === '/api/site/bio' && method === 'GET') return handleSiteBioGet(makeCtx(request, env))
     if (path === '/api/site/views' && method === 'GET') return handleSiteViewsGet(makeCtx(request, env))
     if (path === '/api/site/views' && method === 'POST') return handleSiteViewsPost(makeCtx(request, env))
+    if (path === '/api/site/meta' && method === 'GET') return handleSiteMetaGet(makeCtx(request, env))
     if (path === '/api/auth/google' && method === 'GET') return handleAuthGoogle(makeCtx(request, env))
     if (path === '/api/auth/callback' && method === 'GET') return handleAuthCallback(makeCtx(request, env))
     if (path === '/api/auth/me' && method === 'GET') return handleAuthMe(makeCtx(request, env))
@@ -287,6 +361,7 @@ export default {
     if (path === '/api/site/folder' && method === 'GET') return handleSiteFolderGet(makeCtx(request, env))
     if (path === '/api/site/folder' && method === 'POST') return handleSiteFolderPost(makeCtx(request, env))
     if (path === '/api/site/views' && method === 'PUT') return handleSiteViewsPut(makeCtx(request, env))
+    if (path === '/api/site/meta' && method === 'POST') return handleSiteMetaPost(makeCtx(request, env))
     if (path === '/api/drive/file') {
       if (method === 'POST') {
         const res = await handleDriveFilePost(makeCtx(request, env))
