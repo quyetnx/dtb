@@ -8,6 +8,7 @@ export interface Ad {
   imageId: string
   link: string
   position: string   // 'home' | 'article' | 'video'
+  size?: string      // e.g. '728x90', '300x250', '320x50'
   active: boolean
   order: number
   createdAt: string
