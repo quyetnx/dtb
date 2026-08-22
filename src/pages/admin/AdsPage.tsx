@@ -6,7 +6,7 @@ import {
 } from 'antd'
 import {
   PlusOutlined, EditOutlined, DeleteOutlined,
-  PictureOutlined, UploadOutlined, ReloadOutlined,
+  PictureOutlined, ReloadOutlined,
 } from '@ant-design/icons'
 import type { TableColumnsType } from 'antd'
 
