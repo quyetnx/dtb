@@ -60,16 +60,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       const detail = await docxRes.text()
       return Response.json({ error: 'Không thể tải file DOCX', detail }, { status: 500 })
     }
-    const arrayBuffer = await docxRes.arrayBuffer()
-    const result = await mammoth.convertToHtml(
-      { arrayBuffer },
-      { convertImage: mammoth.images.dataUri },
-    )
-    if (result.messages.length) {
-      console.warn('[drive/file] mammoth warnings', result.messages.slice(0, 3))
+    try {
+      const arrayBuffer = await docxRes.arrayBuffer()
+      const result = await mammoth.convertToHtml(
+        { arrayBuffer },
+        { convertImage: mammoth.images.dataUri },
+      )
+      if (result.messages.length) {
+        console.warn('[drive/file] mammoth warnings', result.messages.slice(0, 3))
+      }
+      const content = cleanGoogleDocsHtml(result.value)
+      return Response.json({ content, format: 'html', ...meta })
+    } catch (e) {
+      console.error('[drive/file] mammoth failed', e)
+      return Response.json({ error: 'Không thể chuyển đổi file DOCX', detail: String(e) }, { status: 500 })
     }
-    const content = cleanGoogleDocsHtml(result.value)
-    return Response.json({ content, format: 'html', ...meta })
   }
 
   // Plain text / markdown (or HTML saved from DOCX import)
