@@ -6,6 +6,7 @@ interface Ad {
   imageId: string
   link: string
   position: string
+  size?: string
   active: boolean
   order: number
 }
@@ -18,6 +19,13 @@ async function fetchAds(): Promise<Ad[]> {
   const d = await res.json() as { ads: Ad[] }
   cachedAds = d.ads ?? []
   return cachedAds
+}
+
+function parseSizeCss(size?: string): React.CSSProperties {
+  if (!size || size === 'full') return { width: '100%' }
+  const m = size.match(/^(\d+)x(\d+)$/)
+  if (!m) return { width: '100%' }
+  return { width: Number(m[1]), maxWidth: '100%' }
 }
 
 interface AdBannerProps {
@@ -43,7 +51,7 @@ export default function AdBanner({ position, className, style }: AdBannerProps) 
   if (ads.length === 0) return null
 
   return (
-    <div className={className} style={{ display: 'flex', flexDirection: 'column', gap: 12, ...style }}>
+    <div className={className} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, ...style }}>
       {ads.map((ad) => (
         <a
           key={ad.id}
@@ -51,7 +59,7 @@ export default function AdBanner({ position, className, style }: AdBannerProps) 
           target="_blank"
           rel="noopener noreferrer"
           title={ad.title}
-          style={{ display: 'block', borderRadius: 4, overflow: 'hidden', lineHeight: 0 }}
+          style={{ display: 'block', borderRadius: 4, overflow: 'hidden', lineHeight: 0, ...parseSizeCss(ad.size) }}
         >
           <img
             src={`/api/drive/image?id=${ad.imageId}`}

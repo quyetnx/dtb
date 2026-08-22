@@ -72,14 +72,9 @@ function ImagePicker({
 
   const loadImages = () => {
     setLoadingImages(true)
-    fetch('/api/drive/list?admin=1')
+    fetch('/api/drive/list?admin=1&type=image')
       .then((r) => r.json() as Promise<{ files: DriveFile[] }>)
-      .then((d) => {
-        const imgs = (d.files ?? []).filter(
-          (f) => f.mimeType?.startsWith('image/') || f.appProperties?.type === undefined && /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.name),
-        )
-        setImages(imgs)
-      })
+      .then((d) => setImages(d.files ?? []))
       .catch(() => msg.error('Không thể tải danh sách ảnh'))
       .finally(() => setLoadingImages(false))
   }
@@ -94,6 +89,7 @@ function ImagePicker({
       const fd = new FormData()
       fd.append('file', file)
       fd.append('name', file.name)
+      fd.append('appProperties', JSON.stringify({ category: 'ad' }))
       const res = await fetch('/api/drive/upload-image', { method: 'POST', body: fd })
       if (!res.ok) throw new Error()
       const data = await res.json() as { id: string }

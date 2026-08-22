@@ -170,6 +170,7 @@ async function injectOGMeta(
 
   const headers = new Headers(htmlRes.headers)
   headers.set('Content-Type', 'text/html; charset=utf-8')
+  headers.set('Cache-Control', 'private, no-store')
   headers.delete('Content-Length')
   return new Response(html, { status: htmlRes.status, headers })
 }
@@ -221,6 +222,7 @@ async function injectPageOGMeta(htmlRes: Response, cfg: PageOGConfig, meta: Site
 
   const headers = new Headers(htmlRes.headers)
   headers.set('Content-Type', 'text/html; charset=utf-8')
+  headers.set('Cache-Control', 'private, no-store')
   headers.delete('Content-Length')
   return new Response(html, { status: htmlRes.status, headers })
 }

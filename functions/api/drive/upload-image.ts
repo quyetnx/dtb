@@ -24,11 +24,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
 
   const folderId = await getDriveFolder(env)
+  const appPropertiesRaw = formData.get('appProperties') as string | null
+  const appProperties: Record<string, string> = appPropertiesRaw
+    ? (JSON.parse(appPropertiesRaw) as Record<string, string>)
+    : {}
   const uploadUrl = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name&supportsAllDrives=true'
 
   const buildBody = (withParent: boolean) => {
     const metadata: Record<string, unknown> = { name, mimeType: file.type }
     if (withParent && folderId) metadata.parents = [folderId]
+    if (Object.keys(appProperties).length > 0) metadata.appProperties = appProperties
     const body = new FormData()
     body.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
     body.append('file', file)
