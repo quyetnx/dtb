@@ -330,6 +330,22 @@ export default {
       const siteMeta = await getSiteMeta(env)
       const isHome = url.searchParams.get('path') !== 'listing'
       const image = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+
+      // Fetch actual ASSETS HTML and test strip+inject
+      const testHtmlRes = await env.ASSETS.fetch(new Request(`${url.origin}/`, { headers: request.headers }))
+      const rawHtml = await testHtmlRes.text()
+      const stripped = stripExistingMeta(rawHtml)
+      const cfg2: PageOGConfig = {
+        title: siteMeta.homeTitle,
+        description: siteMeta.homeDescription,
+        image: siteMeta.homeOgImage || siteMeta.ogImage,
+        url: `${url.origin}/`,
+        type: 'website',
+      }
+      // Build ogBlock inline for inspection
+      const injectedTitle = `<title>${escHtml(cfg2.title)}</title>`
+      const headExtract = stripped.match(/<head>([\s\S]*?)<\/head>/i)?.[1]?.trim().slice(0, 600) ?? 'not matched'
+
       return Response.json({
         kv_raw: rawKv,
         resolved: siteMeta,
@@ -337,6 +353,13 @@ export default {
           title: isHome ? siteMeta.homeTitle : siteMeta.siteTitle,
           description: isHome ? siteMeta.homeDescription : siteMeta.siteDescription,
           image,
+        },
+        assets_html_check: {
+          original_has_og_title: rawHtml.includes('og:title'),
+          after_strip_has_og_title: stripped.includes('og:title'),
+          after_strip_has_title_tag: stripped.includes('<title>'),
+          injected_title_would_be: injectedTitle,
+          head_after_strip: headExtract,
         },
       }, { headers: { 'Cache-Control': 'no-store' } })
     }
