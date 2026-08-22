@@ -13,7 +13,7 @@ import { onRequestGet as handleDriveImage } from './api/drive/image'
 import { onRequestPost as handleUploadImage } from './api/drive/upload-image'
 import { onRequestGet as handleSiteStatusGet, onRequestPost as handleSiteStatusPost } from './api/site/status'
 import { onRequestGet as handleSiteBioGet, onRequestPost as handleSiteBioPost } from './api/site/bio'
-import { onRequestGet as handleSiteViewsGet, onRequestPost as handleSiteViewsPost } from './api/site/views'
+import { onRequestGet as handleSiteViewsGet, onRequestPost as handleSiteViewsPost, onRequestPut as handleSiteViewsPut } from './api/site/views'
 import { onRequestGet as handleYoutubeList } from './api/youtube/list'
 import { onRequestGet as handleYoutubeVideo } from './api/youtube/video'
 import { onRequestGet as handleYoutubePublishedGet, onRequestPost as handleYoutubePublishedPost } from './api/youtube/published'
@@ -286,6 +286,7 @@ export default {
     if (path === '/api/drive/folders' && method === 'GET') return handleDriveFolders(makeCtx(request, env))
     if (path === '/api/site/folder' && method === 'GET') return handleSiteFolderGet(makeCtx(request, env))
     if (path === '/api/site/folder' && method === 'POST') return handleSiteFolderPost(makeCtx(request, env))
+    if (path === '/api/site/views' && method === 'PUT') return handleSiteViewsPut(makeCtx(request, env))
     if (path === '/api/drive/file') {
       if (method === 'POST') {
         const res = await handleDriveFilePost(makeCtx(request, env))

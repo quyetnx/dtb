@@ -5,6 +5,7 @@ import {
 import {
   CheckCircleOutlined, WarningOutlined, DisconnectOutlined,
   LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined, UserOutlined, FolderOutlined,
+  EyeOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text, Paragraph } = Typography
@@ -48,7 +49,10 @@ export default function SettingsPage() {
   const [folderSource, setFolderSource] = useState<'kv' | 'env' | 'none'>('none')
   const [folderSaving, setFolderSaving] = useState(false)
   const [foldersLoading, setFoldersLoading] = useState(false)
-  const [msg, ctxHolder] = message.useMessage()
+  const [currentViews, setCurrentViews] = useState<number | null>(null)
+  const [viewsInput, setViewsInput] = useState('')
+  const [viewsSaving, setViewsSaving] = useState(false)
+const [msg, ctxHolder] = message.useMessage()
 
   const loadDrive = () => {
     setDriveLoading(true)
@@ -79,6 +83,10 @@ export default function SettingsPage() {
         setCurrentFolder(d.folderId)
         setFolderSource(d.source)
       })
+      .catch(() => {})
+    fetch('/api/site/views')
+      .then((r) => r.json())
+      .then((d: { views: number }) => setCurrentViews(d.views))
       .catch(() => {})
   }, [])
 
@@ -155,6 +163,27 @@ export default function SettingsPage() {
       msg.error('Không thể cập nhật')
     } finally {
       setSiteLoading(false)
+    }
+  }
+
+  const saveViews = async () => {
+    const n = parseInt(viewsInput.replace(/\D/g, ''), 10)
+    if (isNaN(n) || n < 0) { msg.error('Số không hợp lệ'); return }
+    setViewsSaving(true)
+    try {
+      const res = await fetch('/api/site/views', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ views: n }),
+      })
+      const d = await res.json() as { views: number }
+      setCurrentViews(d.views)
+      setViewsInput('')
+      msg.success('Đã cập nhật lượt truy cập')
+    } catch {
+      msg.error('Không thể lưu')
+    } finally {
+      setViewsSaving(false)
     }
   }
 
@@ -467,6 +496,40 @@ export default function SettingsPage() {
         >
           Lưu thông tin
         </Button>
+      </Section>
+
+      {/* ── View counter ─────────────────────────────── */}
+      <Section title="Lượt truy cập" icon={<EyeOutlined />}>
+        <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 16 }}>
+          Hiển thị ở chân trang website. Hệ thống tự động đếm mỗi lượt tải trang.
+          Nhập số mới để đặt lại bộ đếm về giá trị mong muốn.
+        </Paragraph>
+
+        {currentViews !== null && (
+          <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 6, padding: '10px 14px', marginBottom: 16 }}>
+            <Text type="secondary" style={{ fontSize: 13 }}>Hiện tại: </Text>
+            <Text strong style={{ fontSize: 16 }}>{currentViews.toLocaleString('vi-VN')}</Text>
+          </div>
+        )}
+
+        <Space.Compact style={{ width: '100%' }}>
+          <Input
+            placeholder="Nhập số lượt truy cập mới..."
+            value={viewsInput}
+            onChange={(e) => setViewsInput(e.target.value)}
+            onPressEnter={saveViews}
+            style={{ fontSize: 14 }}
+          />
+          <Button
+            type="primary"
+            loading={viewsSaving}
+            onClick={saveViews}
+            disabled={!viewsInput}
+            style={{ background: '#5d2e2e', borderColor: '#5d2e2e' }}
+          >
+            Cập nhật
+          </Button>
+        </Space.Compact>
       </Section>
     </div>
   )

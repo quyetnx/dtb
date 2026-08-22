@@ -7,11 +7,6 @@ const navLinks = [
   { to: '/nghe-thuat-van-hoa', label: 'Nghệ thuật & Văn hóa' },
 ]
 
-function formatViews(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + ' triệu'
-  if (n >= 1_000) return (n / 1_000).toFixed(0) + ' nghìn'
-  return n.toLocaleString('vi-VN')
-}
 
 export default function Footer() {
   const [views, setViews] = useState<number | null>(null)
@@ -89,7 +84,7 @@ export default function Footer() {
           </p>
           {views !== null && (
             <p className="text-label" style={{ color: 'var(--color-charcoal-muted)' }}>
-              Lượt truy cập: {formatViews(views)}
+              Lượt truy cập: {views.toLocaleString('vi-VN')}
             </p>
           )}
         </div>
