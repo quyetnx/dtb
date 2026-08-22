@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Alert, Button, Col, DatePicker, Divider, Form, Input,
-  message, Row, Select, Space, Spin, Switch, Typography, Upload,
+  message, Row, Select, Space, Spin, Switch, Tag, Typography, Upload,
 } from 'antd'
 import {
-  ArrowLeftOutlined, DeleteOutlined, FileWordOutlined,
+  ArrowLeftOutlined, DeleteOutlined, EditOutlined, FileWordOutlined,
   PictureOutlined, SaveOutlined, SettingOutlined, UploadOutlined,
 } from '@ant-design/icons'
 import MDEditor, { commands } from '@uiw/react-md-editor'
@@ -28,6 +28,8 @@ interface FormValues {
   publishDate?: dayjs.Dayjs
 }
 
+type EditorMode = 'pick' | 'markdown' | 'html'
+
 export default function ContentFormPage({ contentType, pageTitle, backPath, categoryOptions }: Props) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -37,6 +39,7 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [content, setContent] = useState('')
+  const [editorMode, setEditorMode] = useState<EditorMode>('pick')
   const [coverImageId, setCoverImageId] = useState<string | null>(null)
   const [coverUploading, setCoverUploading] = useState(false)
   const [docxImporting, setDocxImporting] = useState(false)
@@ -61,8 +64,11 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
           status: data.appProperties?.status === 'published',
           publishDate: data.appProperties?.publishDate ? dayjs(data.appProperties.publishDate) : undefined,
         })
-        setContent(data.content ?? '')
-        setContentFormat((data.appProperties?.contentFormat as 'markdown' | 'html') ?? 'markdown')
+        const fmt = (data.appProperties?.contentFormat as 'markdown' | 'html') ?? 'markdown'
+        const body = (data.content as string) ?? ''
+        setContent(body)
+        setContentFormat(fmt)
+        setEditorMode(fmt === 'html' ? 'html' : 'markdown')
         setCoverImageId(data.appProperties?.coverImageId ?? null)
         setDescription((data.description as string) ?? '')
       })
@@ -144,12 +150,16 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
         { arrayBuffer },
         { convertImage: mammoth.images.dataUri },
       )
-      msg.loading({ content: `Đang upload ${result.value.match(/src="data:/g)?.length ?? 0} ảnh lên Drive...`, key: 'docx-upload' })
+      const imgCount = result.value.match(/src="data:/g)?.length ?? 0
+      if (imgCount > 0) {
+        msg.loading({ content: `Đang upload ${imgCount} ảnh lên Drive...`, key: 'docx-upload' })
+      }
       const html = await uploadBase64Images(result.value)
-      msg.success({ content: 'Đã nhập DOCX và upload ảnh xong', key: 'docx-upload' })
+      msg.success({ content: 'Đã nhập nội dung từ Word thành công!', key: 'docx-upload', duration: 4 })
       const trimmed = html.trim()
       setContent(trimmed)
       setContentFormat('html')
+      setEditorMode('html')
       autoFillFromContent(trimmed, coverImageId)
     } catch { msg.error('Không thể đọc file DOCX') }
     finally {
@@ -322,8 +332,10 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
               </Form.Item>
             </div>
 
-            {/* Editor */}
+            {/* ── Editor card ───────────────────────────── */}
             <div style={{ background: 'white', borderRadius: 8, border: '1px solid #ebebeb', overflow: 'hidden' }}>
+
+              {/* Header */}
               <div style={{
                 padding: '10px 16px',
                 borderBottom: '1px solid #ebebeb',
@@ -334,37 +346,125 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Text style={{ fontSize: 13, fontWeight: 500 }}>Nội dung</Text>
-                  {contentFormat === 'html' && (
-                    <span style={{
-                      fontSize: 11,
-                      padding: '1px 6px',
-                      borderRadius: 4,
-                      background: '#e6f4ff',
-                      color: '#1677ff',
-                      border: '1px solid #91caff',
-                    }}>HTML · từ DOCX</span>
+                  {editorMode === 'html' && (
+                    <Tag icon={<FileWordOutlined />} color="blue" style={{ margin: 0 }}>Đã nhập từ Word</Tag>
+                  )}
+                  {editorMode === 'markdown' && (
+                    <Tag color="default" style={{ margin: 0, fontSize: 11 }}>Markdown</Tag>
                   )}
                 </div>
+
                 <Space size="small">
-                  {contentFormat === 'html' && (
-                    <Button
-                      size="small"
-                      onClick={() => { setContentFormat('markdown'); setContent('') }}
-                    >
-                      Chuyển sang Markdown
-                    </Button>
+                  {editorMode === 'html' && (
+                    <>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setContentFormat('markdown')
+                          setContent('')
+                          setEditorMode('markdown')
+                        }}
+                      >
+                        Chuyển sang Markdown
+                      </Button>
+                      <Button
+                        size="small"
+                        type="primary"
+                        icon={<FileWordOutlined />}
+                        loading={docxImporting}
+                        onClick={() => docxInputRef.current?.click()}
+                        style={{ background: '#1677ff', borderColor: '#1677ff' }}
+                      >
+                        Nhập lại Word
+                      </Button>
+                    </>
                   )}
-                  <Button
-                    size="small"
-                    icon={<FileWordOutlined />}
-                    loading={docxImporting}
-                    onClick={() => docxInputRef.current?.click()}
-                  >
-                    {contentFormat === 'html' ? 'Nhập lại DOCX' : 'Nhập từ DOCX'}
-                  </Button>
+                  {editorMode === 'markdown' && (
+                    <>
+                      <Button
+                        size="small"
+                        onClick={() => setEditorMode('pick')}
+                      >
+                        Đổi phương thức
+                      </Button>
+                      <Button
+                        size="small"
+                        type="default"
+                        icon={<FileWordOutlined />}
+                        loading={docxImporting}
+                        onClick={() => docxInputRef.current?.click()}
+                      >
+                        Nhập từ Word
+                      </Button>
+                    </>
+                  )}
                 </Space>
               </div>
-              {contentFormat === 'html' ? (
+
+              {/* ── Chọn phương thức (pick mode) ─────────── */}
+              {editorMode === 'pick' && (
+                <div style={{ padding: 24 }}>
+                  <Upload.Dragger
+                    accept=".docx"
+                    showUploadList={false}
+                    beforeUpload={(file) => { handleDocxImport(file); return false }}
+                    disabled={docxImporting}
+                    style={{
+                      background: '#f0f7ff',
+                      border: '2px dashed #91caff',
+                      borderRadius: 8,
+                      padding: '32px 24px',
+                    }}
+                  >
+                    {docxImporting ? (
+                      <div style={{ padding: '16px 0' }}>
+                        <Spin size="large" />
+                        <p style={{ marginTop: 16, fontSize: 14, color: '#555' }}>Đang xử lý file Word...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 48, lineHeight: 1, marginBottom: 12 }}>
+                          <FileWordOutlined style={{ color: '#1677ff' }} />
+                        </div>
+                        <p style={{ fontSize: 16, fontWeight: 600, color: '#1677ff', marginBottom: 6 }}>
+                          Kéo thả file Word vào đây
+                        </p>
+                        <p style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>
+                          Hỗ trợ định dạng .docx · Ảnh trong tài liệu sẽ tự động upload lên Drive
+                        </p>
+                        <Button
+                          type="primary"
+                          icon={<UploadOutlined />}
+                          size="large"
+                          style={{ background: '#1677ff', borderColor: '#1677ff' }}
+                        >
+                          Chọn file .docx
+                        </Button>
+                      </>
+                    )}
+                  </Upload.Dragger>
+
+                  <Divider plain style={{ fontSize: 12, color: '#bbb', margin: '20px 0' }}>
+                    hoặc soạn thảo trực tiếp
+                  </Divider>
+
+                  <Button
+                    block
+                    size="large"
+                    icon={<EditOutlined />}
+                    onClick={() => {
+                      setEditorMode('markdown')
+                      setContentFormat('markdown')
+                    }}
+                    style={{ height: 52, fontSize: 14, border: '1px solid #d9d9d9' }}
+                  >
+                    Soạn thảo Markdown
+                  </Button>
+                </div>
+              )}
+
+              {/* ── Nội dung HTML từ DOCX ─────────────── */}
+              {editorMode === 'html' && (
                 <div style={{ padding: 20, minHeight: 520, maxHeight: 720, overflowY: 'auto' }}>
                   <div
                     className="prose-content"
@@ -372,7 +472,10 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
                     style={{ fontSize: 14, lineHeight: 1.8 }}
                   />
                 </div>
-              ) : (
+              )}
+
+              {/* ── Markdown editor ───────────────────── */}
+              {editorMode === 'markdown' && (
                 <div data-color-mode="light">
                   <MDEditor
                     value={content}
