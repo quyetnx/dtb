@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
+import DriveImage from '../components/DriveImage'
 
 interface FileItem {
   id: string
@@ -99,8 +100,11 @@ export default function LiteraturePage() {
                 {featured.appProperties?.coverImageId ? (
                   <div className="grid grid-cols-1 md:grid-cols-2" style={{ minHeight: 260 }}>
                     <div style={{ overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)', height: 340 }}>
-                      <img
-                        src={`/api/drive/image?id=${featured.appProperties.coverImageId}`}
+                      <DriveImage
+                        fileId={featured.appProperties.coverImageId}
+                        defaultWidth={800}
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        loading="eager"
                         alt={featured.name.replace(/\.md$/, '')}
                         style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block', transition: 'transform 0.6s ease-out' }}
                         className="scale-110 group-hover:scale-100"
@@ -222,8 +226,10 @@ export default function LiteraturePage() {
                           backgroundColor: 'var(--color-paper-ivory-dark)',
                         }}
                       >
-                        <img
-                          src={`/api/drive/image?id=${coverImageId}`}
+                        <DriveImage
+                          fileId={coverImageId}
+                          defaultWidth={400}
+                          sizes="128px"
                           alt=""
                           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transition: 'transform 0.6s ease-out' }}
                           className="scale-110 group-hover:scale-100"

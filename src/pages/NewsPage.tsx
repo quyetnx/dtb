@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
+import DriveImage from '../components/DriveImage'
 
 interface FileItem {
   id: string
@@ -118,8 +119,10 @@ export default function NewsPage() {
                 </div>
                 {f.appProperties?.coverImageId ? (
                   <div className="shrink-0" style={{ width: 128, height: 86, borderRadius: 2, overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
-                    <img
-                      src={`/api/drive/image?id=${f.appProperties.coverImageId}`}
+                    <DriveImage
+                      fileId={f.appProperties.coverImageId}
+                      defaultWidth={400}
+                      sizes="128px"
                       alt=""
                       style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', transition: 'transform 0.6s ease-out' }}
                       className="scale-110 group-hover:scale-100"

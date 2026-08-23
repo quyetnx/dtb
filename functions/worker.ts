@@ -244,10 +244,29 @@ async function injectPageOGMeta(htmlRes: Response, cfg: PageOGConfig, meta: Site
 // ── Drive list cache bust (called after any file write) ────────────────────
 
 async function bustDriveListCache(env: Env): Promise<void> {
-  // List all KV keys with prefix drive:list: and delete them all
-  // This handles any folder ID variation without needing to guess the key
   const listed = await env.SESSIONS.list({ prefix: 'drive:list:' })
   await Promise.all(listed.keys.map((k) => env.SESSIONS.delete(k.name).catch(() => {})))
+}
+
+// ── Per-file cache bust: KV + CF edge for all image size variants ──────────
+
+async function bustFileCache(env: Env, fileId: string, origin: string): Promise<void> {
+  // KV: og meta + thumbnail link
+  await Promise.all([
+    env.SESSIONS.delete(`og:meta:${fileId}`).catch(() => {}),
+    env.SESSIONS.delete(`thumb:link:${fileId}`).catch(() => {}),
+  ])
+  // CF edge cache: bust all sized variants and thumb endpoint
+  if (typeof caches !== 'undefined') {
+    const base = `${origin}/api/drive/image?id=${fileId}`
+    await Promise.all([
+      caches.default.delete(new Request(base)).catch(() => {}),
+      caches.default.delete(new Request(`${base}&w=400`)).catch(() => {}),
+      caches.default.delete(new Request(`${base}&w=800`)).catch(() => {}),
+      caches.default.delete(new Request(`${base}&w=1200`)).catch(() => {}),
+      caches.default.delete(new Request(`${origin}/api/drive/thumb?id=${fileId}`)).catch(() => {}),
+    ])
+  }
 }
 
 // ── Drive thumbnail proxy ───────────────────────────────────────────────────
@@ -451,17 +470,26 @@ export default {
         const res = await handleDriveFilePatch(makeCtx(request, env))
         if (res.ok) {
           bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
-          if (patchId) env.SESSIONS.delete(`og:meta:${patchId}`).catch(() => {})
+          if (patchId) bustFileCache(env, patchId, url.origin).catch(() => {})
         }
         return res
       }
       if (method === 'DELETE') {
+        const delId = url.searchParams.get('id')
         const res = await handleDriveFileDelete(makeCtx(request, env))
-        if (res.ok) bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
+        if (res.ok) {
+          bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
+          if (delId) bustFileCache(env, delId, url.origin).catch(() => {})
+        }
         return res
       }
     }
-    if (path === '/api/drive/upload-image' && method === 'POST') return handleUploadImage(makeCtx(request, env))
+    if (path === '/api/drive/upload-image' && method === 'POST') {
+      const res = await handleUploadImage(makeCtx(request, env))
+      // Bust image list cache so new image appears immediately
+      if (res.ok) bustDriveListCache(env).catch(() => {})
+      return res
+    }
     if (path === '/api/site/status' && method === 'POST') return handleSiteStatusPost(makeCtx(request, env))
     if (path === '/api/site/bio' && method === 'POST') return handleSiteBioPost(makeCtx(request, env))
     if (path === '/api/youtube/published' && method === 'GET') return handleYoutubePublishedGet(makeCtx(request, env))

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
 import AdBanner from '../components/AdBanner'
+import DriveImage from '../components/DriveImage'
 
 const AUTHOR_PHOTO = 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
 
@@ -125,11 +126,23 @@ export default function HomePage() {
                   maxHeight: '70vh',
                 }}
               >
-                <img
-                  src={bio.authorPhotoId ? `/api/drive/image?id=${bio.authorPhotoId}` : AUTHOR_PHOTO}
-                  alt="Dương Thanh Biểu"
-                  className="w-full h-full object-cover object-top"
-                />
+                {bio.authorPhotoId ? (
+                  <DriveImage
+                    fileId={bio.authorPhotoId}
+                    defaultWidth={800}
+                    sizes="(max-width: 1024px) 100vw, 40vw"
+                    alt="Dương Thanh Biểu"
+                    className="w-full h-full object-cover object-top"
+                    loading="eager"
+                  />
+                ) : (
+                  <img
+                    src={AUTHOR_PHOTO}
+                    alt="Dương Thanh Biểu"
+                    className="w-full h-full object-cover object-top"
+                    loading="eager"
+                  />
+                )}
                 {/* Subtle gradient at bottom */}
                 <div style={{
                   position: 'absolute',
@@ -181,8 +194,10 @@ export default function HomePage() {
                   >
                     {coverImageId && (
                       <div style={{ aspectRatio: '16/9', overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
-                        <img
-                          src={`/api/drive/image?id=${coverImageId}`}
+                        <DriveImage
+                          fileId={coverImageId}
+                          defaultWidth={800}
+                          sizes="(max-width: 768px) 100vw, 33vw"
                           alt={f.name.replace(/\.md$/, '')}
                           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block', transition: 'transform 0.6s ease-out' }}
                           className="scale-110 group-hover:scale-100"
@@ -333,8 +348,10 @@ export default function HomePage() {
                   >
                     {coverImageId && (
                       <div style={{ aspectRatio: '16/9', overflow: 'hidden', backgroundColor: 'var(--color-paper-ivory-dark)' }}>
-                        <img
-                          src={`/api/drive/image?id=${coverImageId}`}
+                        <DriveImage
+                          fileId={coverImageId}
+                          defaultWidth={800}
+                          sizes="(max-width: 768px) 100vw, 33vw"
                           alt={f.name.replace(/\.md$/, '')}
                           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top', display: 'block', transition: 'transform 0.6s ease-out' }}
                           className="scale-110 group-hover:scale-100"
