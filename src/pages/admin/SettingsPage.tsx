@@ -5,8 +5,9 @@ import {
 import {
   CheckCircleOutlined, WarningOutlined, DisconnectOutlined,
   LinkOutlined, ReloadOutlined, GlobalOutlined, CloudOutlined, UserOutlined, FolderOutlined,
-  EyeOutlined, SearchOutlined,
+  EyeOutlined, SearchOutlined, UploadOutlined, LoadingOutlined,
 } from '@ant-design/icons'
+import { Upload } from 'antd'
 
 const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
@@ -75,6 +76,9 @@ export default function SettingsPage() {
   })
   const [metaSaving, setMetaSaving] = useState(false)
   const [bustingCache, setBustingCache] = useState(false)
+  const [authorPhotoId, setAuthorPhotoId] = useState('')
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [uploadingOgImage, setUploadingOgImage] = useState(false)
   const [msg, ctxHolder] = message.useMessage()
 
   const loadDrive = () => {
@@ -94,10 +98,11 @@ export default function SettingsPage() {
       .catch(() => {})
     fetch('/api/site/bio')
       .then((r) => r.json())
-      .then((d: { quote?: string; bio?: string; bioDetail?: string }) => {
+      .then((d: { quote?: string; bio?: string; bioDetail?: string; authorPhotoId?: string }) => {
         setBioQuote(d.quote ?? '')
         setBioBio(d.bio ?? '')
         setBioBioDetail(d.bioDetail ?? '')
+        setAuthorPhotoId(d.authorPhotoId ?? '')
       })
       .catch(() => {})
     fetch('/api/site/folder')
@@ -160,13 +165,18 @@ export default function SettingsPage() {
     }
   }
 
-  const saveBio = async () => {
+  const saveBio = async (overrides?: { authorPhotoId?: string }) => {
     setBioSaving(true)
     try {
       await fetch('/api/site/bio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quote: bioQuote, bio: bioBio, bioDetail: bioBioDetail }),
+        body: JSON.stringify({
+          quote: bioQuote,
+          bio: bioBio,
+          bioDetail: bioBioDetail,
+          authorPhotoId: overrides?.authorPhotoId ?? authorPhotoId,
+        }),
       })
       msg.success('Đã lưu thông tin tác giả')
     } catch {
@@ -174,6 +184,15 @@ export default function SettingsPage() {
     } finally {
       setBioSaving(false)
     }
+  }
+
+  const uploadImageToDrive = async (file: File, name: string): Promise<{ id: string }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('name', name)
+    const res = await fetch('/api/drive/upload-image', { method: 'POST', body: formData })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json() as Promise<{ id: string }>
   }
 
   const toggleSite = async (val: boolean) => {
@@ -554,8 +573,36 @@ export default function SettingsPage() {
 
         <div style={{ marginBottom: 14 }}>
           <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Ảnh OG mặc định (og:image)</Text>
-          <Input value={siteMeta.ogImage} onChange={(e) => setSiteMeta((p) => ({ ...p, ogImage: e.target.value }))} placeholder="https://..." />
-          <Text type="secondary" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Dùng cho trang không có ảnh riêng</Text>
+          {siteMeta.ogImage && (
+            <img
+              src={siteMeta.ogImage}
+              alt="OG preview"
+              style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, marginBottom: 8, border: '1px solid #f0f0f0' }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+          )}
+          <Space.Compact style={{ width: '100%' }}>
+            <Input value={siteMeta.ogImage} onChange={(e) => setSiteMeta((p) => ({ ...p, ogImage: e.target.value }))} placeholder="https://... hoặc tải lên →" />
+            <Upload
+              accept="image/*"
+              showUploadList={false}
+              customRequest={async ({ file }) => {
+                setUploadingOgImage(true)
+                try {
+                  const { id } = await uploadImageToDrive(file as File, 'og-image-default')
+                  setSiteMeta((p) => ({ ...p, ogImage: `/api/drive/image?id=${id}` }))
+                  msg.success('Đã tải lên ảnh OG. Nhấn Lưu SEO & OG để áp dụng.')
+                } catch {
+                  msg.error('Không thể tải lên ảnh')
+                } finally {
+                  setUploadingOgImage(false)
+                }
+              }}
+            >
+              <Button icon={uploadingOgImage ? <LoadingOutlined /> : <UploadOutlined />} />
+            </Upload>
+          </Space.Compact>
+          <Text type="secondary" style={{ fontSize: 11, marginTop: 4, display: 'block' }}>Dùng cho trang không có ảnh riêng. URL hoặc tải lên từ máy.</Text>
         </div>
 
         <Divider plain style={{ fontSize: 12, color: '#bbb', margin: '8px 0 14px' }}>Trang chủ</Divider>
@@ -611,6 +658,52 @@ export default function SettingsPage() {
         <Paragraph type="secondary" style={{ fontSize: 13, marginBottom: 20 }}>
           Nội dung hiển thị trên trang chủ. Thay đổi sẽ có hiệu lực ngay sau khi lưu.
         </Paragraph>
+
+        <div style={{ marginBottom: 20 }}>
+          <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 10 }}>Ảnh tác giả</Text>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{
+              width: 80, height: 80, borderRadius: 8, overflow: 'hidden',
+              border: '1px solid #f0f0f0', background: '#fafafa',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              {authorPhotoId ? (
+                <img
+                  src={`/api/drive/thumb?id=${authorPhotoId}`}
+                  alt="Author"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              ) : (
+                <UserOutlined style={{ fontSize: 28, color: '#ccc' }} />
+              )}
+            </div>
+            <div>
+              <Upload
+                accept="image/*"
+                showUploadList={false}
+                customRequest={async ({ file }) => {
+                  setUploadingPhoto(true)
+                  try {
+                    const { id } = await uploadImageToDrive(file as File, 'author-photo')
+                    setAuthorPhotoId(id)
+                    await saveBio({ authorPhotoId: id })
+                  } catch {
+                    msg.error('Không thể tải lên ảnh')
+                  } finally {
+                    setUploadingPhoto(false)
+                  }
+                }}
+              >
+                <Button icon={uploadingPhoto ? <LoadingOutlined /> : <UploadOutlined />} loading={uploadingPhoto}>
+                  {authorPhotoId ? 'Thay ảnh' : 'Tải lên ảnh tác giả'}
+                </Button>
+              </Upload>
+              <Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 6 }}>
+                Hiển thị ở section giới thiệu tác giả. Tải lên tự động lưu.
+              </Text>
+            </div>
+          </div>
+        </div>
 
         <div style={{ marginBottom: 16 }}>
           <Text strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>Câu trích dẫn (hero)</Text>

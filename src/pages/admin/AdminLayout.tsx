@@ -157,11 +157,19 @@ export default function AdminLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — sticky so it doesn't scroll with page content */}
       {desktop && (
         <Sider
           width={SIDEBAR_W}
-          style={{ background: '#161616', position: 'relative', paddingBottom: 60 }}
+          style={{
+            background: '#161616',
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            overflowY: 'auto',
+            flexShrink: 0,
+            paddingBottom: 60,
+          }}
         >
           {siderContent}
         </Sider>

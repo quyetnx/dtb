@@ -326,7 +326,8 @@ export default {
           getSiteMeta(env),
         ])
         const isHome = path === '/'
-        const image = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+        const rawImage = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+        const image = rawImage?.startsWith('/') ? `${url.origin}${rawImage}` : rawImage
         const cfg: PageOGConfig = {
           title: isHome ? siteMeta.homeTitle : `${siteMeta.siteTitle}`,
           description: isHome ? siteMeta.homeDescription : siteMeta.siteDescription,
@@ -345,7 +346,8 @@ export default {
       const rawKv = await env.SESSIONS.get('site:meta')
       const siteMeta = await getSiteMeta(env)
       const isHome = url.searchParams.get('path') !== 'listing'
-      const image = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+      const rawImage = isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage
+      const image = rawImage?.startsWith('/') ? `${url.origin}${rawImage}` : rawImage
 
       // Fetch actual ASSETS HTML and test strip+inject
       const testHtmlRes = await env.ASSETS.fetch(new Request(`${url.origin}/`, { headers: request.headers }))
