@@ -24,6 +24,7 @@ interface Bio {
   quote: string
   bio: string
   bioDetail: string
+  authorPhotoId?: string
 }
 
 const DEFAULT_BIO: Bio = {
@@ -125,7 +126,7 @@ export default function HomePage() {
                 }}
               >
                 <img
-                  src={AUTHOR_PHOTO}
+                  src={bio.authorPhotoId ? `/api/drive/image?id=${bio.authorPhotoId}` : AUTHOR_PHOTO}
                   alt="Dương Thanh Biểu"
                   className="w-full h-full object-cover object-top"
                 />

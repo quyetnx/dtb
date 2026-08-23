@@ -173,7 +173,7 @@ function ImagePicker({
                       ? img.thumbnailLink.replace(/=s\d+$/, '=s200')
                       : `/api/drive/image?id=${img.id}`}
                     alt={img.name}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', background: '#f5f5f5' }}
                     onError={(e) => { (e.target as HTMLImageElement).src = `/api/drive/image?id=${img.id}` }}
                   />
                   {value === img.id && (
@@ -338,7 +338,7 @@ export default function AdsPage() {
           <img
             src={`/api/drive/image?id=${record.imageId}`}
             alt=""
-            style={{ width: 64, height: 40, objectFit: 'cover', borderRadius: 4 }}
+            style={{ width: 64, height: 40, objectFit: 'contain', borderRadius: 4, background: '#f5f5f5' }}
           />
         ) : <span style={{ color: '#bbb' }}>—</span>,
     },

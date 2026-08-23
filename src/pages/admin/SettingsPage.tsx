@@ -577,7 +577,7 @@ export default function SettingsPage() {
             <img
               src={siteMeta.ogImage}
               alt="OG preview"
-              style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6, marginBottom: 8, border: '1px solid #f0f0f0' }}
+              style={{ width: '100%', maxHeight: 120, objectFit: 'contain', borderRadius: 6, marginBottom: 8, border: '1px solid #f0f0f0', background: '#f5f5f5' }}
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
             />
           )}

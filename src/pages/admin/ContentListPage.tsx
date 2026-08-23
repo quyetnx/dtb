@@ -111,7 +111,7 @@ export default function ContentListPage({ title, contentType, basePath, category
             <img
               src={`/api/drive/image?id=${record.appProperties.coverImageId}`}
               alt=""
-              style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 2, flexShrink: 0 }}
+              style={{ width: 36, height: 36, objectFit: 'contain', borderRadius: 2, flexShrink: 0, background: '#f5f5f5' }}
             />
           )}
           <button

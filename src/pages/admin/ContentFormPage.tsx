@@ -613,8 +613,8 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
                     src={`/api/drive/image?id=${coverImageId}`}
                     alt="cover"
                     style={{
-                      width: '100%', aspectRatio: '16/9', objectFit: 'cover',
-                      borderRadius: 6, marginBottom: 10, display: 'block',
+                      width: '100%', aspectRatio: '16/9', objectFit: 'contain',
+                      borderRadius: 6, marginBottom: 10, display: 'block', background: '#f5f5f5',
                     }}
                     onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
