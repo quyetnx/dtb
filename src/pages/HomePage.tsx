@@ -38,6 +38,7 @@ export default function HomePage() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [videos, setVideos] = useState<VideoItem[]>([])
   const [bio, setBio] = useState<Bio>(DEFAULT_BIO)
+  const [bioLoaded, setBioLoaded] = useState(false)
 
   useSEO({})
 
@@ -54,6 +55,7 @@ export default function HomePage() {
       .then((r) => r.json())
       .then((d: Bio) => setBio(d))
       .catch(() => {})
+      .finally(() => setBioLoaded(true))
   }, [])
 
   const vanXuoi = files.filter((f) => f.appProperties?.type === 'van-xuoi').slice(0, 3)
@@ -126,7 +128,7 @@ export default function HomePage() {
                   maxHeight: '70vh',
                 }}
               >
-                {bio.authorPhotoId ? (
+                {bioLoaded && (bio.authorPhotoId ? (
                   <DriveImage
                     fileId={bio.authorPhotoId}
                     defaultWidth={800}
@@ -142,7 +144,7 @@ export default function HomePage() {
                     className="w-full h-full object-cover object-top"
                     loading="eager"
                   />
-                )}
+                ))}
                 {/* Subtle gradient at bottom */}
                 <div style={{
                   position: 'absolute',
