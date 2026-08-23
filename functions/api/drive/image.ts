@@ -13,6 +13,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const fileId = url.searchParams.get('id')
   if (!fileId) return new Response('Missing id', { status: 400 })
 
+  // CF edge cache — on HIT the Worker CPU is not billed
+  const edgeCache = typeof caches !== 'undefined' ? caches.default : null
+  if (edgeCache) {
+    const hit = await edgeCache.match(request)
+    if (hit) return hit
+  }
+
   let token: string
   try {
     token = await getDriveToken(env)
@@ -41,10 +48,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     ? (await metaRes.json() as { mimeType: string })
     : { mimeType: 'image/jpeg' }
 
-  return new Response(contentRes.body, {
+  const response = new Response(contentRes.body, {
     headers: {
       'Content-Type': mimeType,
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
     },
   })
+
+  // Write to CF edge cache (fire-and-forget)
+  edgeCache?.put(request, response.clone()).catch(() => {})
+  return response
 }

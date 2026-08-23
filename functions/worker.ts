@@ -252,32 +252,51 @@ async function handleDriveThumb(request: Request, env: Env): Promise<Response> {
   const fileId = new URL(request.url).searchParams.get('id')
   if (!fileId) return new Response('Missing id', { status: 400 })
 
-  let token: string
-  try { token = await getDriveToken(env) } catch {
-    return new Response('Drive not connected', { status: 503 })
+  // 1. CF edge cache — on HIT the Worker CPU is not billed
+  const edgeCache = typeof caches !== 'undefined' ? caches.default : null
+  if (edgeCache) {
+    const hit = await edgeCache.match(request)
+    if (hit) return hit
   }
 
-  const metaRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  )
-  if (!metaRes.ok) return new Response('Not found', { status: 404 })
+  // 2. KV thumbnailLink cache — skip Drive meta API call on warm path
+  const kvKey = `thumb:link:${fileId}`
+  let thumbnailLink = await env.SESSIONS.get(kvKey)
 
-  const { thumbnailLink } = await metaRes.json() as { thumbnailLink?: string }
-  if (!thumbnailLink) return new Response('No thumbnail', { status: 404 })
+  if (!thumbnailLink) {
+    let token: string
+    try { token = await getDriveToken(env) } catch {
+      return new Response('Drive not connected', { status: 503 })
+    }
+    const metaRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (!metaRes.ok) return new Response('Not found', { status: 404 })
+    const { thumbnailLink: link } = await metaRes.json() as { thumbnailLink?: string }
+    if (!link) return new Response('No thumbnail', { status: 404 })
+    thumbnailLink = link
+    await env.SESSIONS.put(kvKey, thumbnailLink, { expirationTtl: 21600 }) // 6h
+  }
 
-  // Use a larger thumbnail (replace trailing size param)
-  const largeThumb = thumbnailLink.replace(/=s\d+$/, '=s800')
+  const imgRes = await fetch(thumbnailLink.replace(/=s\d+$/, '=s800'))
+  if (!imgRes.ok) {
+    // Drive signed URL expired — clear KV so next request re-fetches meta
+    if (imgRes.status === 401 || imgRes.status === 403)
+      env.SESSIONS.delete(kvKey).catch(() => {})
+    return new Response('Fetch failed', { status: 502 })
+  }
 
-  const imgRes = await fetch(largeThumb)
-  if (!imgRes.ok) return new Response('Fetch failed', { status: 502 })
-
-  return new Response(imgRes.body, {
+  const response = new Response(imgRes.body, {
     headers: {
       'Content-Type': imgRes.headers.get('Content-Type') ?? 'image/jpeg',
-      'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+      'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800',
     },
   })
+
+  // 3. Write to CF edge cache (fire-and-forget)
+  edgeCache?.put(request, response.clone()).catch(() => {})
+  return response
 }
 
 export default {
