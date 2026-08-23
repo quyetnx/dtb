@@ -738,7 +738,7 @@ export default function SettingsPage() {
         <Button
           type="primary"
           loading={bioSaving}
-          onClick={saveBio}
+          onClick={() => saveBio()}
           style={{ background: '#7c3535', borderColor: '#7c3535' }}
         >
           Lưu thông tin
