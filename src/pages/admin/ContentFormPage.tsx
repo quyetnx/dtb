@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Alert, Button, Col, DatePicker, Divider, Form, Input,
-  message, Row, Select, Space, Spin, Switch, Tag, Typography, Upload,
+  Alert, Button, Col, DatePicker, Divider, Empty, Form, Input,
+  message, Modal, Row, Select, Space, Spin, Switch, Tag, Typography, Upload,
 } from 'antd'
 import {
-  ArrowLeftOutlined, DeleteOutlined, EditOutlined, FileWordOutlined,
-  PictureOutlined, SaveOutlined, SettingOutlined, UploadOutlined,
+  AppstoreOutlined, ArrowLeftOutlined, DeleteOutlined, EditOutlined, FileWordOutlined,
+  SaveOutlined, SettingOutlined, UploadOutlined,
 } from '@ant-design/icons'
 import MDEditor, { commands } from '@uiw/react-md-editor'
 import '@uiw/react-md-editor/markdown-editor.css'
@@ -46,6 +46,9 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
   const [contentFormat, setContentFormat] = useState<'markdown' | 'html'>('markdown')
   const [description, setDescription] = useState('')
   const [imageInserting, setImageInserting] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerImages, setPickerImages] = useState<{ id: string; name: string; thumbnailLink?: string }[]>([])
+  const [pickerLoading, setPickerLoading] = useState(false)
   const docxInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [form] = Form.useForm<FormValues>()
@@ -105,6 +108,16 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
       msg.success('Đã tải ảnh')
     } catch (e) { msg.error((e as Error).message || 'Không thể tải ảnh') }
     finally { setCoverUploading(false) }
+  }
+
+  const openPicker = () => {
+    setPickerOpen(true)
+    setPickerLoading(true)
+    fetch('/api/drive/list?type=image&admin=1')
+      .then((r) => r.json())
+      .then((d: { files?: { id: string; name: string; thumbnailLink?: string }[] }) => setPickerImages(d.files ?? []))
+      .catch(() => msg.error('Không thể tải danh sách ảnh'))
+      .finally(() => setPickerLoading(false))
   }
 
   const uploadBase64Images = async (html: string): Promise<string> => {
@@ -607,49 +620,104 @@ export default function ContentFormPage({ contentType, pageTitle, backPath, cate
             <div style={{ background: 'white', borderRadius: 8, padding: 16, border: '1px solid #ebebeb' }}>
               <Text strong style={{ fontSize: 13 }}>Ảnh đại diện</Text>
               <Divider style={{ margin: '10px 0' }} />
-              {coverImageId ? (
-                <>
-                  <img
-                    src={`/api/drive/image?id=${coverImageId}`}
-                    alt="cover"
-                    style={{
-                      width: '100%', aspectRatio: '16/9', objectFit: 'contain',
-                      borderRadius: 6, marginBottom: 10, display: 'block', background: '#f5f5f5',
-                    }}
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                  />
-                  <Space wrap>
-                    <Upload
-                      accept="image/*"
-                      showUploadList={false}
-                      beforeUpload={(file) => { handleCoverUpload(file); return false }}
-                    >
-                      <Button size="small" icon={<PictureOutlined />} loading={coverUploading}>Đổi ảnh</Button>
-                    </Upload>
-                    <Button size="small" danger icon={<DeleteOutlined />} onClick={() => setCoverImageId(null)}>
-                      Xóa
-                    </Button>
-                  </Space>
-                  <Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 8, wordBreak: 'break-all' }}>
-                    Markdown: <code>![alt](/api/drive/image?id={coverImageId})</code>
-                  </Text>
-                </>
-              ) : (
+              {coverImageId && (
+                <img
+                  src={`/api/drive/image?id=${coverImageId}`}
+                  alt="cover"
+                  style={{
+                    width: '100%', aspectRatio: '16/9', objectFit: 'contain',
+                    borderRadius: 6, marginBottom: 10, display: 'block', background: '#f5f5f5',
+                  }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              )}
+              <Space wrap style={{ width: '100%' }}>
                 <Upload
                   accept="image/*"
                   showUploadList={false}
                   beforeUpload={(file) => { handleCoverUpload(file); return false }}
                 >
-                  <Button
-                    icon={<UploadOutlined />}
-                    loading={coverUploading}
-                    style={{ width: '100%' }}
-                  >
-                    Tải ảnh lên
+                  <Button size="small" icon={<UploadOutlined />} loading={coverUploading}>
+                    {coverImageId ? 'Upload ảnh mới' : 'Upload ảnh'}
                   </Button>
                 </Upload>
+                <Button size="small" icon={<AppstoreOutlined />} onClick={openPicker}>
+                  Chọn từ thư viện
+                </Button>
+                {coverImageId && (
+                  <Button size="small" danger icon={<DeleteOutlined />} onClick={() => setCoverImageId(null)}>
+                    Xóa
+                  </Button>
+                )}
+              </Space>
+              {coverImageId && (
+                <Text type="secondary" style={{ fontSize: 10, display: 'block', marginTop: 8, wordBreak: 'break-all' }}>
+                  Markdown: <code>![alt](/api/drive/image?id={coverImageId})</code>
+                </Text>
               )}
             </div>
+
+            {/* Image picker modal */}
+            <Modal
+              title="Chọn ảnh từ thư viện"
+              open={pickerOpen}
+              onCancel={() => setPickerOpen(false)}
+              footer={null}
+              width={680}
+            >
+              {pickerLoading ? (
+                <div style={{ textAlign: 'center', padding: 32 }}><Spin /></div>
+              ) : pickerImages.length === 0 ? (
+                <Empty description="Chưa có ảnh nào trong thư viện" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                  gap: 10,
+                  maxHeight: 420,
+                  overflowY: 'auto',
+                  padding: '4px 2px',
+                }}>
+                  {pickerImages.map((img) => (
+                    <div
+                      key={img.id}
+                      onClick={() => { setCoverImageId(img.id); setPickerOpen(false) }}
+                      title={img.name}
+                      style={{
+                        cursor: 'pointer',
+                        borderRadius: 6,
+                        overflow: 'hidden',
+                        border: coverImageId === img.id ? '2px solid #1677ff' : '2px solid #f0f0f0',
+                        position: 'relative',
+                        aspectRatio: '1',
+                        background: '#f5f5f5',
+                        transition: 'border-color 0.15s',
+                      }}
+                    >
+                      <img
+                        src={img.thumbnailLink
+                          ? img.thumbnailLink.replace(/=s\d+$/, '=s200')
+                          : `/api/drive/image?id=${img.id}`}
+                        alt={img.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                        onError={(e) => { (e.target as HTMLImageElement).src = `/api/drive/image?id=${img.id}` }}
+                      />
+                      {coverImageId === img.id && (
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          background: 'rgba(22,119,255,0.15)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <div style={{ background: '#1677ff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span style={{ color: 'white', fontSize: 12 }}>✓</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Modal>
           </Col>
         </Row>
       </Form>

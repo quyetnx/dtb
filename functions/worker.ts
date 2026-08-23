@@ -112,7 +112,7 @@ interface FileMeta {
   name?: string
   description?: string
   thumbnailLink?: string
-  appProperties?: { type?: string; category?: string }
+  appProperties?: { type?: string; category?: string; coverImageId?: string }
 }
 
 async function getOGMeta(fileId: string, env: Env): Promise<FileMeta | null> {
@@ -140,9 +140,9 @@ async function injectOGMeta(
   fileId: string,
   env: Env,
   origin: string,
-  isPoem: boolean,
+  pathPrefix: string,
 ): Promise<Response> {
-  const meta = await getOGMeta(fileId, env)
+  const [meta, siteMeta] = await Promise.all([getOGMeta(fileId, env), getSiteMeta(env)])
   if (!meta) return htmlRes
 
   const contentToken = env.SESSION_SECRET
@@ -150,14 +150,18 @@ async function injectOGMeta(
     : ''
 
   const title = (meta.name ?? '').replace(/\.md$/, '')
-  const desc = meta.description
-    ?? (isPoem
-      ? `Bài thơ "${title}" của Dương Thanh Biểu.`
-      : `Tác phẩm "${title}" của Dương Thanh Biểu.`)
-  const pageUrl = `${origin}${isPoem ? '/tho/' : '/van-tho/'}${fileId}`
-  const imageUrl = meta.thumbnailLink
-    ? `${origin}/api/drive/thumb?id=${fileId}`
-    : 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
+  const desc = meta.description ?? `Tác phẩm "${title}" của Dương Thanh Biểu.`
+  const pageUrl = `${origin}${pathPrefix}${fileId}`
+
+  let imageUrl: string
+  if (meta.appProperties?.coverImageId) {
+    imageUrl = `${origin}/api/drive/image?id=${meta.appProperties.coverImageId}`
+  } else if (meta.thumbnailLink) {
+    imageUrl = `${origin}/api/drive/thumb?id=${fileId}`
+  } else {
+    const raw = siteMeta.ogImage ?? 'https://hoduongvietnam.com.vn/uploads/images/duong-thanh-bieu(1).png'
+    imageUrl = raw.startsWith('/') ? `${origin}${raw}` : raw
+  }
 
   const ogBlock = `
   <title>${escHtml(title)} — Dương Thanh Biểu</title>
@@ -313,8 +317,9 @@ export default {
       const fileId = articleMatch?.[1] ?? poemMatch?.[1] ?? newsMatch?.[1]
 
       if (fileId) {
+        const pathPrefix = poemMatch ? '/tho/' : newsMatch ? '/tin-tuc/' : '/van-tho/'
         const htmlRes = await env.ASSETS.fetch(request)
-        return injectOGMeta(htmlRes, fileId, env, url.origin, !!poemMatch)
+        return injectOGMeta(htmlRes, fileId, env, url.origin, pathPrefix)
       }
 
       // Inject site-wide OG meta for page routes (homepage and listing pages)
@@ -442,8 +447,12 @@ export default {
         return res
       }
       if (method === 'PATCH') {
+        const patchId = url.searchParams.get('id')
         const res = await handleDriveFilePatch(makeCtx(request, env))
-        if (res.ok) bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
+        if (res.ok) {
+          bustDriveListCache(env).catch((e) => console.error('[bustCache]', e))
+          if (patchId) env.SESSIONS.delete(`og:meta:${patchId}`).catch(() => {})
+        }
         return res
       }
       if (method === 'DELETE') {
