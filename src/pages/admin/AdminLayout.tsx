@@ -63,7 +63,7 @@ export default function AdminLayout() {
 
   const menuItems = [
     { key: '/admin', icon: <DashboardOutlined />, label: <Link to="/admin">Tổng quan</Link> },
-    { key: '/admin/van-xuoi', icon: <FileTextOutlined />, label: <Link to="/admin/van-xuoi">Văn xuôi</Link> },
+    { key: '/admin/van-xuoi', icon: <FileTextOutlined />, label: <Link to="/admin/van-xuoi">Văn xuôi & Truyện ký</Link> },
     { key: '/admin/tho', icon: <ReadOutlined />, label: <Link to="/admin/tho">Thơ</Link> },
     { key: '/admin/nghe-thuat', icon: <BookOutlined />, label: <Link to="/admin/nghe-thuat">Nghệ thuật</Link> },
     { key: '/admin/tin-tuc', icon: <NotificationOutlined />, label: <Link to="/admin/tin-tuc">Tin tức</Link> },
