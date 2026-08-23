@@ -67,7 +67,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
             <div className="lg:col-span-7 order-2 lg:order-1">
               <p className="text-label mb-6" style={{ color: 'var(--color-oxblood)' }}>
-                Nhà văn · Nhà thơ · Hồi ký
+                Nhà văn · Nhà thơ · Truyện ký
               </p>
               <h1 className="text-display-xl" style={{ color: 'var(--color-charcoal)' }}>
                 Dương Thanh Biểu

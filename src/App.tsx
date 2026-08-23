@@ -26,7 +26,7 @@ const AdsPage = lazy(() => import('./pages/admin/AdsPage'))
 const ContentFormPage = lazy(() => import('./pages/admin/ContentFormPage'))
 const SettingsPage = lazy(() => import('./pages/admin/SettingsPage'))
 
-const VAN_XUOI_CATS = ['Tiểu thuyết', 'Truyện ngắn', 'Hồi ký', 'Tùy bút', 'Ký sự']
+const VAN_XUOI_CATS = ['Tiểu thuyết', 'Truyện ngắn', 'Truyện ký', 'Tùy bút', 'Ký sự']
 const NGHE_THUAT_CATS = ['Phê bình văn học', 'Nghệ thuật', 'Âm nhạc', 'Văn hóa', 'Mỹ thuật', 'Kiến trúc']
 const TIN_TUC_CATS = ['Thời sự', 'Sự kiện', 'Thông báo', 'Hoạt động', 'Giải thưởng']
 

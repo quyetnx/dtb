@@ -71,7 +71,7 @@ export default function DashboardPage() {
   if (loading) return <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
 
   const cards = [
-    { title: 'Văn xuôi & Hồi ký', value: stats.vanXuoi, icon: <FileTextOutlined style={{ color: '#5d2e2e' }} />, color: '#fff0ee' },
+    { title: 'Văn xuôi & Truyện ký', value: stats.vanXuoi, icon: <FileTextOutlined style={{ color: '#5d2e2e' }} />, color: '#fff0ee' },
     { title: 'Thơ', value: stats.tho, icon: <ReadOutlined style={{ color: '#3a5a8c' }} />, color: '#eef4ff' },
     { title: 'Nghệ thuật & VH', value: stats.ngheThuat, icon: <BookOutlined style={{ color: '#2e6e44' }} />, color: '#eefff4' },
     { title: 'Hình ảnh', value: stats.hinhAnh, icon: <PictureOutlined style={{ color: '#7a5200' }} />, color: '#fff8ee' },

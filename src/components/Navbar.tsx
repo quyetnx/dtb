@@ -183,7 +183,7 @@ export default function Navbar() {
           borderTop: '1px solid var(--color-muted-border)',
         }}>
           <p style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--color-charcoal-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            Nhà văn · Nhà thơ · Hồi ký
+            Nhà văn · Nhà thơ · Truyện ký
           </p>
         </div>
       </div>
