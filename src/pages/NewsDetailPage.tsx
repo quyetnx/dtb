@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { marked } from 'marked'
 import { useSEO } from '../hooks/useSEO'
+import ShareButtons from '../components/ShareButtons'
 
 interface FileMeta {
   id: string
@@ -123,8 +124,12 @@ export default function NewsDetailPage() {
 
       <div style={{ maxWidth: '720px', margin: '0 auto', borderBottom: '1px solid var(--color-muted-border)' }}>
         <div
-          className="pb-16 prose-content"
+          className="pb-10 prose-content"
           dangerouslySetInnerHTML={{ __html: html }}
+        />
+        <ShareButtons
+          title={title ? `${title} — Dương Thanh Biểu` : undefined}
+          style={{ paddingBottom: 32 }}
         />
       </div>
 

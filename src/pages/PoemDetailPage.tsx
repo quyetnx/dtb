@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useSEO } from '../hooks/useSEO'
+import ShareButtons from '../components/ShareButtons'
 
 interface FileMeta {
   id: string
   name: string
   modifiedTime: string
-  appProperties?: { type?: string; category?: string }
-  thumbnailLink?: string
+  appProperties?: { type?: string; category?: string; coverImageId?: string }
   description?: string
 }
 
@@ -76,7 +76,9 @@ export default function PoemDetailPage() {
   }, [meta])
 
   const title = meta?.name.replace(/\.md$/, '') ?? ''
-  const thumbUrl = meta?.thumbnailLink ? `/api/drive/thumb?id=${id}` : undefined
+  const thumbUrl = meta?.appProperties?.coverImageId
+    ? `/api/drive/image?id=${meta.appProperties.coverImageId}`
+    : undefined
 
   useSEO({
     title: title || undefined,
@@ -228,6 +230,11 @@ export default function PoemDetailPage() {
             Mọi quyền được bảo lưu.<br />
             Nghiêm cấm sao chép, tái bản khi chưa có sự đồng ý của tác giả.
           </p>
+
+          <ShareButtons
+            title={title ? `${title} — Dương Thanh Biểu` : undefined}
+            style={{ justifyContent: 'center', marginTop: '2rem' }}
+          />
 
           {/* ── Related poems ─────────────────────────── */}
           {related.length > 0 && (

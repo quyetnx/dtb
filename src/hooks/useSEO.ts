@@ -63,7 +63,8 @@ export function useSEO({ title, description, image, url, type = 'website' }: SEO
         : `${title} — ${siteMeta.siteTitle}`
       const desc = description
         ?? (isHome ? siteMeta.homeDescription : siteMeta.siteDescription)
-      const img = image ?? (isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage)
+      const rawImg = image ?? (isHome && siteMeta.homeOgImage ? siteMeta.homeOgImage : siteMeta.ogImage)
+      const img = rawImg?.startsWith('/') ? `${window.location.origin}${rawImg}` : rawImg
       const pageUrl = url ?? (window.location.origin + window.location.pathname)
 
       document.title = fullTitle

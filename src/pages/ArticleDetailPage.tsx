@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { marked, type TokenizerAndRendererExtension } from 'marked'
 import { useSEO } from '../hooks/useSEO'
 import AdBanner from '../components/AdBanner'
+import ShareButtons from '../components/ShareButtons'
 
 // Custom extension: [youtube:videoId] → embedded iframe
 const youtubeExtension: TokenizerAndRendererExtension = {
@@ -308,7 +309,7 @@ export default function ArticleDetailPage() {
           {/* Copyright footer */}
           <div
             style={{
-              margin: '0 0 32px',
+              margin: '0 0 24px',
               padding: '16px 20px',
               borderLeft: '3px solid var(--color-muted-border)',
               backgroundColor: 'var(--color-paper-ivory-dark)',
@@ -321,6 +322,11 @@ export default function ArticleDetailPage() {
               khi chưa có sự đồng ý bằng văn bản của tác giả.
             </p>
           </div>
+
+          <ShareButtons
+            title={title ? `${title} — Dương Thanh Biểu` : undefined}
+            style={{ paddingBottom: 32 }}
+          />
         </div>
 
         {/* ── Related content ─────────────────────────────── */}
